@@ -1,0 +1,1153 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Construction Navigator Simulator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: työmaatabletti – häiriöilmoitus ylhäällä, tietolähteet vasemmalla, päätöspaneeli oikealla */
+:root{
+  --bg:#E8EBE8; --surface:#FFFFFF; --surface-2:#F2F4F2; --line:#D2D7D3; --fg:#1A211F; --muted:#56615C;
+  --primary:#21476A; --primary-fg:#FFFFFF; --primary-soft:#E0E9F1;
+  --alert:#8F5600; --alert-bg:#FFF1D6; --alert-line:#E7B257;
+  --ai:#0A6A63; --ai-bg:#E0F0EC; --ai-line:#9CCFC6;
+  --good:#2C7439; --good-bg:#E3F1E5; --bad:#A8352A; --bad-bg:#F8E3E0; --warn:#9A6200;
+  --st-v:#8A9590; --st-l:#4C78A0; --st-s:#5C9E6A; --st-k:#DDA23C;
+  --font-d:"Barlow Condensed","Arial Narrow",sans-serif;
+  --font-b:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-m:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1C2220; --surface-2:#232A27; --line:#343C38; --fg:#E4E8E5; --muted:#99A39E;
+  --primary:#8DB6DC; --primary-fg:#0D1A26; --primary-soft:#1E2C39;
+  --alert:#F2B54A; --alert-bg:#2E2412; --alert-line:#6B5020;
+  --ai:#55C7B8; --ai-bg:#132C28; --ai-line:#2A5A52;
+  --good:#7CC98A; --good-bg:#16291A; --bad:#EE8B7F; --bad-bg:#33191A; --warn:#E9B35A;
+  --st-v:#6A7570; --st-l:#5E8DB8; --st-s:#5FA86E; --st-k:#D49A35;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1C2220; --surface-2:#232A27; --line:#343C38; --fg:#E4E8E5; --muted:#99A39E;
+  --primary:#8DB6DC; --primary-fg:#0D1A26; --primary-soft:#1E2C39;
+  --alert:#F2B54A; --alert-bg:#2E2412; --alert-line:#6B5020;
+  --ai:#55C7B8; --ai-bg:#132C28; --ai-line:#2A5A52;
+  --good:#7CC98A; --good-bg:#16291A; --bad:#EE8B7F; --bad-bg:#33191A; --warn:#E9B35A;
+  --st-v:#6A7570; --st-l:#5E8DB8; --st-s:#5FA86E; --st-k:#D49A35;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.5 var(--font-b);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3{font-family:var(--font-d);font-weight:600;line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.01em} h2{font-size:1.45rem} h3{font-size:1.1rem;letter-spacing:.02em}
+p{margin:0}
+.mono,.num{font-family:var(--font-m);font-variant-numeric:tabular-nums}
+.label{font-family:var(--font-d);font-weight:600;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+/* yläpalkki */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);
+  margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top .wrap{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding-block:10px}
+.brand{font-family:var(--font-d);font-weight:700;font-size:1.15rem;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+.brand .mk{width:22px;height:22px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.brand .mk i{background:var(--primary);border-radius:1px}.brand .mk i:nth-child(5){background:var(--alert-line)}
+.nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.nav button{background:none;border:0;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:600;color:var(--muted)}
+.nav button[aria-current="true"]{background:var(--primary-soft);color:var(--fg)}
+.prog{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.85rem;font-weight:600;border:1px solid var(--line);background:var(--surface-2)}
+.chip.ai{background:var(--ai-bg);border-color:var(--ai-line);color:var(--ai)}
+.chip.no{background:var(--surface-2)}
+.chip.pilot{background:var(--alert-bg);border-color:var(--alert-line);color:var(--alert)}
+.dots{display:flex;gap:4px}.dots i{width:18px;height:6px;border-radius:2px;background:var(--line)}.dots i.on{background:var(--primary)}.dots i.cur{background:var(--alert-line)}
+
+/* yleiset */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--primary);background:var(--primary);color:var(--primary-fg);
+  padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;min-height:44px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn.small{min-height:32px;padding:4px 12px;font-size:.9rem}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.pad{padding:20px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field input,.field select,.field textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px;min-height:42px;width:100%}
+textarea{resize:vertical}
+.err{color:var(--bad);font-weight:600;font-size:.9rem}
+.note{font-size:.9rem;color:var(--muted)}
+
+/* aloitus */
+.home{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;padding-top:24px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.formgrid .full{grid-column:1/-1}
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.check input{width:20px;height:20px;margin-top:2px;accent-color:var(--primary)}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--font-d);font-weight:600;letter-spacing:.04em;font-size:.9rem;color:var(--muted)}
+.tscroll{overflow-x:auto}
+tr.sel td{background:var(--primary-soft)}
+.cond-ai{color:var(--ai);font-weight:600}
+.status{display:flex;gap:8px;align-items:center;font-size:.9rem}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.status.ok i{background:var(--good)}.status.warn i{background:var(--warn)}
+
+/* ohje */
+.script{font-size:1.15rem;line-height:1.65;max-width:68ch}
+.script p+p{margin-top:12px}
+
+/* skenaario */
+.alert{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;background:var(--alert-bg);border:1px solid var(--alert-line);border-radius:10px;padding:16px 18px;margin-top:18px}
+.alert .clock{font-family:var(--font-m);font-size:1.5rem;font-weight:500;color:var(--alert);grid-row:span 2;align-self:center;border-right:1px solid var(--alert-line);padding-right:16px}
+.alert .from{font-family:var(--font-d);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.85rem;color:var(--alert)}
+.alert .txt{font-size:1.12rem;font-weight:500}
+.scgrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px;margin-top:18px;align-items:start}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:8px 8px 0}
+.tabs button{border:1px solid transparent;border-bottom:0;background:none;padding:8px 14px;border-radius:8px 8px 0 0;cursor:pointer;font-weight:600;color:var(--muted);position:relative;top:1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--fg)}
+.tabs button.seen::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);margin-left:6px;vertical-align:middle;opacity:.6}
+.tabbody{padding:16px;min-height:260px}
+.empty{display:grid;place-items:center;min-height:228px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:20px}
+.st{display:inline-block;padding:1px 8px;border-radius:4px;font-size:.82rem;font-weight:600;white-space:nowrap}
+.st.late{background:var(--bad-bg);color:var(--bad)}.st.risk{background:var(--alert-bg);color:var(--alert)}.st.done{background:var(--good-bg);color:var(--good)}
+.msg{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.msg .t{font-family:var(--font-m);font-size:.9rem;color:var(--muted);grid-row:span 2}
+.msg .w{font-weight:600;font-size:.92rem}
+/* tietomalli */
+.model{display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr));gap:4px;max-width:440px}
+.model .fl{font-family:var(--font-m);font-size:.85rem;color:var(--muted);align-self:center;padding-right:8px}
+.model .fl.cur{color:var(--fg);font-weight:500}
+.model .c{height:40px;border-radius:3px;display:grid;place-items:center;font-family:var(--font-d);font-weight:700;font-size:.95rem;color:#fff;border:1px solid transparent}
+.model .c.v{background:var(--st-v)}.model .c.l{background:var(--st-l)}.model .c.s{background:var(--st-s)}
+.model .c.k{background:repeating-linear-gradient(135deg,var(--st-k) 0 6px,transparent 6px 11px);border-color:var(--st-k);color:var(--fg)}
+.model .c.n{border:1px dashed var(--line);color:var(--muted)}
+.model .c.cur{outline:2px solid var(--fg);outline-offset:1px}
+.model .hd{font-family:var(--font-d);font-weight:600;text-align:center;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.85rem;margin-top:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:14px;border-radius:2px;display:inline-block}
+.notes{margin:14px 0 0;padding-left:18px}.notes li{margin:4px 0}
+
+/* päätöspaneeli */
+.ai{background:var(--ai-bg);border:1px solid var(--ai-line);border-radius:10px;padding:16px}
+.ai .hd{display:flex;align-items:center;gap:8px;color:var(--ai);font-family:var(--font-d);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.9rem}
+.ai .hd i{width:10px;height:10px;border-radius:2px;background:var(--ai);transform:rotate(45deg)}
+.ai h4{margin:12px 0 4px;font-family:var(--font-d);font-weight:600;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ai)}
+.chain{display:flex;flex-direction:column;gap:0;margin:4px 0}
+.chain span{position:relative;padding:3px 0 3px 18px;font-size:.95rem}
+.chain span::before{content:"";position:absolute;left:4px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--ai)}
+.chain span+span::after{content:"";position:absolute;left:7px;top:-6px;height:14px;width:1px;background:var(--ai-line)}
+.rec{background:var(--surface);border:1px solid var(--ai-line);border-radius:8px;padding:10px 12px;font-weight:600}
+.srcs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.srcs button{border:1px solid var(--ai-line);background:var(--surface);color:var(--ai);border-radius:99px;padding:2px 10px;font-size:.85rem;cursor:pointer;font-weight:600}
+.steps{display:flex;gap:6px;padding:14px 16px 0}
+.steps span{flex:1;font-family:var(--font-d);font-weight:600;font-size:.88rem;letter-spacing:.04em;color:var(--muted);border-top:3px solid var(--line);padding-top:6px}
+.steps span.on{color:var(--fg);border-color:var(--primary)}.steps span.done{border-color:var(--st-v)}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;background:var(--surface)}
+.opt input{width:18px;height:18px;margin-top:3px;accent-color:var(--primary);flex:none}
+.opt:has(input:checked){border-color:var(--primary);background:var(--primary-soft)}
+.opt.locked{cursor:default;opacity:.55}.opt.locked.chosen{opacity:1}
+.rcp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.rcp label{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:.92rem;line-height:1.3}
+.rcp label:has(input:checked){border-color:var(--primary);background:var(--primary-soft)}
+.rcp input{accent-color:var(--primary);margin-top:2px;flex:none}
+.rcp small{display:block;color:var(--muted)}
+.msgs{display:flex;flex-direction:column;gap:10px}
+.msgs .field label{font-weight:600;font-size:.92rem}
+.conf{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.conf button{border:1px solid var(--line);background:var(--surface);border-radius:8px;min-height:52px;font-family:var(--font-d);font-size:1.4rem;font-weight:700;cursor:pointer}
+.conf button[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+.scale{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);margin-top:4px}
+.decide .body{padding:16px;display:flex;flex-direction:column;gap:14px}
+.chosen-sum{font-size:.9rem;border-left:3px solid var(--primary);padding-left:10px}
+
+/* tulokset */
+.res-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;padding-top:24px}
+.cmp td.num,.cmp th.num{text-align:right}
+.diff.good{color:var(--good);font-weight:600}.diff.bad{color:var(--bad);font-weight:600}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kpi{padding:14px 16px}
+.kpi .v{font-family:var(--font-d);font-size:1.8rem;font-weight:700;line-height:1.1}
+.bar{height:8px;border-radius:2px;background:var(--line);overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--primary)}
+.bar.ai i{background:var(--ai)}
+.csvbox{width:100%;min-height:140px;font-family:var(--font-m);font-size:.8rem}
+.center{max-width:760px;margin:32px auto 0}
+.condbar{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap;margin-top:18px;padding:10px 16px;border-radius:10px;font-family:var(--font-d);font-weight:700;font-size:1.1rem;letter-spacing:.02em;border:1px solid var(--line);background:var(--surface)}
+.condbar.ai{background:var(--ai-bg);border-color:var(--ai-line);color:var(--ai)}
+.condbar .sub{font-family:var(--font-b);font-weight:400;font-size:.95rem;color:var(--muted);letter-spacing:0}
+.aiopt{background:var(--surface);border:1px solid var(--ai-line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.aiopt.rec{border:2px solid var(--ai)}
+.aiopt .meta{display:flex;gap:10px;flex-wrap:wrap;font-size:.9rem;font-weight:600;color:var(--ai)}
+.tag{font-family:var(--font-d);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:.75rem;color:var(--ai)}
+.doc{border-left:3px solid var(--line);padding:2px 0 2px 14px;max-width:70ch}.doc+.doc{margin-top:16px}.doc h3{margin-bottom:6px}
+.rates{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.welcome-list{margin:0;padding-left:20px}.welcome-list li{margin:6px 0}
+.codebox{width:100%;min-height:120px;font-family:var(--font-m);font-size:.78rem;line-height:1.4;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px;word-break:break-all}
+.sendbox{border-color:var(--alert-line);background:var(--alert-bg)}
+.resume{border-color:var(--primary)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
+label.btn{cursor:pointer}
+
+.alertcard{margin-top:18px;border:1px solid var(--alert-line);border-radius:10px;overflow:hidden;background:var(--alert-bg)}
+.alertcard .condbar{margin:0;border:0;border-radius:0;border-bottom:1px solid var(--alert-line);padding:8px 18px;font-size:1rem}
+.alertcard .alert{margin:0;border:0;border-radius:0}
+.guide{margin-top:12px;padding:10px 16px;border-radius:10px;background:var(--primary-soft);font-size:.95rem;line-height:1.5}
+.stephint{margin:0;padding:8px 12px;border-radius:8px;background:var(--surface-2);font-size:.95rem}
+.srcguide{display:flex;flex-direction:column;gap:8px}
+.srcrow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer}
+.srcrow:hover{border-color:var(--primary);background:var(--primary-soft)}
+.srcrow span{color:var(--muted);font-size:.9rem}
+.rgroup{display:flex;flex-direction:column;gap:6px}
+.rgroup+.rgroup{margin-top:4px}
+.aisit{margin-top:8px}
+.ai .aiopt.rec{margin-top:10px;font-weight:400}
+.aiother{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;background:var(--surface);border:1px solid var(--ai-line);border-radius:8px;padding:8px 12px;font-size:.92rem}
+.aiother .cost{font-weight:600;color:var(--ai);white-space:nowrap}
+.aiother .note{grid-column:1/-1}
+.model .c{font-family:var(--font-b);font-weight:600;font-size:.8rem;line-height:1.15;text-align:center;padding:2px 4px}
+.cmp th.grp{text-align:center;border-bottom:2px solid var(--line);color:var(--fg)}
+.cmp th.grp-ai{color:var(--ai);border-bottom-color:var(--ai-line)}
+.foot{color:var(--muted);font-size:.85rem;padding-block:28px 8px;text-align:center}
+
+
+.linkbtn{background:none;border:0;padding:0;color:var(--primary);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+details.sd{border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+details.sd summary{cursor:pointer;font-weight:600}
+.kv{display:grid;grid-template-columns:minmax(130px,auto) minmax(0,1fr);gap:6px 16px;margin:12px 0 4px}
+.kv dt{font-family:var(--font-d);font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.kv dd{margin:0;min-width:0}
+@media (max-width:600px){.kv{grid-template-columns:1fr}.kv dd{margin-bottom:6px}}
+
+@media (max-width:860px){
+  .home,.scgrid{grid-template-columns:1fr}
+  .formgrid{grid-template-columns:1fr}
+  .rcp{grid-template-columns:1fr}
+  .alert{grid-template-columns:1fr}.alert .clock{grid-row:auto;border-right:0;padding-right:0}
+}
+@media (prefers-reduced-motion:no-preference){.fade{animation:fade .25s ease-out}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
+</style>
+
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =====================================================================
+   CONSTRUCTION NAVIGATOR SIMULATOR
+   Testisimulaattori: runkovaiheen häiriöt ilman tekoälyä ja tekoälyavustajan kanssa.
+   Metropolia Ammattikorkeakoulu, innovaatioprojekti 2026, Trimble Finland Oy:n toimeksiannosta.
+
+   TÄMÄ ON TIEDOSTON MUOKATTAVA OSA. Muuta vain tämän skriptilohkon arvoja.
+   Ohjeet: README.md (luovutusohje).
+   ===================================================================== */
+
+/* ---------- 1. ASETUKSET ---------- */
+const CONFIG={
+  /* Teksti aloitussivun yläreunassa */
+  project:'Metropolia × Trimble · innovaatioprojekti',
+  /* Tulosten automaattinen keruu Google-lomakkeella. Liitä tähän lomakkeen esitäytetty linkki
+     (lomakkeen valikko → Hae esitäytetty linkki). Lomakkeessa on yksi Kappale-kysymys.
+     Esimerkki: 'https://docs.google.com/forms/d/e/XXXX/viewform?usp=pp_url&entry.123456=x' */
+  googleFormLink:'',
+  /* Kenelle testaaja lähettää tulokset sähköpostilla, jos automaattinen keruu ei ole käytössä.
+     Jos tyhjä, testaajaa pyydetään vastaamaan viestiin, jossa hän sai linkin. */
+  contactName:'',
+  contactEmail:'',
+  /* Vaihtoehto Google-lomakkeelle: oma palvelu, johon tulokset lähetetään HTTP POST -pyyntönä (JSON). */
+  submitUrl:'',
+  /* Alatunnisteen teksti */
+  about:'Construction Navigator -konseptin testisimulaattori. Metropolia Ammattikorkeakoulu, innovaatioprojekti 2026, Trimble Finland Oy:n toimeksiannosta.'
+};
+
+/* ---------- 2. KUSTANNUSARVIOT (oletukset; voi muuttaa myös tulosnäkymässä) ---------- */
+const DEFAULT_RATES={asentaja:55,nosturi:140,rekka:95,paiva:2500};
+const RATE_LABELS={asentaja:'Asentajan tunti',nosturi:'Torninosturi ja kuljettaja, tunti',rekka:'Rekan odotus, tunti',paiva:'Rungon viivästys, työpäivä'};
+const RATE_UNITS={asentaja:'€/h',nosturi:'€/h',rekka:'€/h',paiva:'€/pv'};
+
+/* ---------- 3. VIESTIEN VASTAANOTTAJAT (id, nimi, henkilö, ryhmä) ---------- */
+const RECIP=[
+ {id:'asennus',g:'Työmaa',n:'Elementtiasennusporukka',p:'Mika L., porukan vetäjä'},
+ {id:'nosturi',g:'Työmaa',n:'Nosturinkuljettaja',p:'Jari K.'},
+ {id:'juotos',g:'Työmaa',n:'Saumaus- ja juotosporukka',p:'Timo R.'},
+ {id:'vastaava',g:'Työmaa',n:'Vastaava työnjohtaja',p:'Petri N.'},
+ {id:'tehdas',g:'Toimittajat',n:'Elementtitehdas, toimitukset ja laatu',p:'Sanna P.'},
+ {id:'kuljetus',g:'Toimittajat',n:'Kuljetusliike',p:'Ajojärjestely'},
+ {id:'suunnittelija',g:'Suunnittelu, valvonta ja muut urakoitsijat',n:'Rakennesuunnittelija',p:'Laura S.'},
+ {id:'pintavalu',g:'Suunnittelu, valvonta ja muut urakoitsijat',n:'Pintavaluurakoitsija',p:'Ville H.'},
+ {id:'lvi',g:'Suunnittelu, valvonta ja muut urakoitsijat',n:'LVI-urakoitsija',p:'Antti M.'},
+ {id:'valvoja',g:'Suunnittelu, valvonta ja muut urakoitsijat',n:'Rakennuttajan valvoja',p:'Hanna V.'}
+];
+
+/* ---------- 4. KAIKISSA HÄIRIÖISSÄ NÄKYVÄT ASIAKIRJAT (Suunnitelmat-välilehti) ---------- */
+const DOCS_COMMON=[
+ ['Rungon asennussuunnitelma','Ontelolaatat tukeutuvat vain kantaviin seiniin ja palkkeihin eivätkä kanna toisiaan. Yksittäisen laatan paikan voi jättää auki ja asentaa laatan myöhemmin ennen saumajuotoksia. Seuraavan kerroksen seinäelementtejä ei saa asentaa, ennen kuin alapuolisen kerroksen laatat on asennettu ja juotettu. Elementtejä ei saa välivarastoida asennetun laataston päälle ilman rakennesuunnittelijan lupaa. Laatta-asennukseen tarvitaan vähintään kolme asentajaa. Nostot keskeytetään, kun tuulen puuskat ylittävät 12 m/s.'],
+ ['Elementtitoimitussopimus','Toimittaja vastaa virheellisen elementin korjaamisesta, korvaamisesta ja kiirehtimisestä aiheutuvista kustannuksista, kun poikkeamasta on ilmoitettu toimittajalle ja se on todettu yhdessä ennen elementin asentamista tai muokkaamista. Muuten kustannuksista vastaa tilaaja. Elementtiin ei saa tehdä muutoksia (poraus, sahaus, lyhentäminen) ilman rakennesuunnittelijan kirjallista hyväksyntää. Kuorman lähtöajan muutoksesta sovitaan tehtaan kanssa viimeistään tuntia ennen lähtöä. Mittatoleranssit: laatan pituus ±15 mm.']
+];
+
+/* ---------- 5. HÄIRIÖT ----------
+ Kentät:
+  type, title, when (viikonpäivä ja kellonaika), start (kellonaika minuutteina keskiyöstä), floor (korostettava kerros)
+  alert: [lähettäjä, ilmoitus]
+  sched: aikataulun rivit [aika, työvaihe, tekijä, tila]   tila: '' | 'late' | 'risk' | 'done'
+  deliv: toimitukset [kuorma, sisältö, suunniteltu, tilanne, tila]
+  model: tietomallin kerrokset ylhäältä alas (5. krs → 1. krs), lohkot A B C:
+         v = valmis, l = laatat asennettu (juotokset kesken), s = seinät valmiit, k = seinät kesken, - = ei aloitettu
+  notes: tietomallin huomiot,  res: resurssit [nimi, tilanne, tila],  docs: häiriökohtaiset asiakirjat,  msgs: viestit [aika, lähettäjä, teksti]
+  opts: vaihtoehdot o(id, teksti, laatu, kustannuserät, vastaanottajat, seuraus, viestiluonnokset, lisät)
+        Vaihtoehdot näytetään aina tässä järjestyksessä.
+        laatu: 2 = paras, 1 = hyväksyttävä, 0 = huono (jokaisessa häiriössä täsmälleen yksi paras, ja se on halvin)
+        kustannuserät I(laji, määrä, selite): laji asentaja | nosturi | rekka (tunteja), paiva (työpäiviä), eur (euroja)
+        vastaanottajat: ketkä tämän päätöksen pitää saada tietoonsa
+        viestiluonnokset: avustajan luonnos jokaiselle vastaanottajalle {vastaanottaja: teksti}
+        lisät: {dlItems:[...]} lisäkustannus, jos määräaika ylittyy
+  ok: vastaanottajat, joille viesti on hyväksyttävä mutta ei pakollinen (muut lasketaan turhiksi)
+  miss: kustannus, jos tarvittava vastaanottaja jää ilman viestiä
+  dl: pehmeä määräaika {rid: vastaanottaja, at: kellonaika minuutteina, label}. Simulaatiokello kulkee SPEED-kertaisesti.
+  ai: avustaja {sit, chain, show: näytettävät vaihtoehdot, rec: suositus, why, src: välilehdet, flawed: tarkoituksella puutteellinen}
+*/
+const I=(k,q,l)=>({k,q,l});
+const o=(id,t,q,items,to,c,m,extra)=>Object.assign({id,t,q,items,to,c,m},extra||{});
+const SC={
+/* ===== HARJOITUKSET (ei lasketa tuloksiin) ===== */
+HA:{type:'Toimitus',title:'Kuorma saapuu etuajassa',when:'Ma 6.50',start:410,floor:2,
+ alert:['Kuljetusliike','2. kerroksen lohkon C laattakuorma K1 saapuu klo 7.10, eli 50 minuuttia etuajassa. Asennus on suunniteltu alkamaan klo 8.00.'],
+ sched:[['7.00–7.30','Aamupalaveri ja nostojen valmistelu','Asennusporukka',''],['8.00–11.00','2. krs C ontelolaatat (K1)','Asennusporukka','risk'],['11.00–15.00','2. krs C saumajuotokset','Juotosporukka','']],
+ deliv:[['K1','2. krs C · 10 laattaa','8.00','Saapuu 7.10','risk'],['K2','3. krs A seinäelementit','12.30','Aikataulussa','']],
+ model:['---','---','---','vvs','vvv'],notes:['2. krs C: seinät tuettu, valmis laatoille'],
+ res:[['Torninosturi','Kuljettaja paikalla klo 7.00',''],['Asennusporukka','4 asentajaa paikalla klo 7.00',''],['Odotusalue','Vapaa, tilaa yhdelle rekalle','']],
+ docs:[],
+ msgs:[['6.48','Kuljetusliike','Lähdettiin aikaisemmin, ollaan perillä 7.10.'],['6.40','Asennusporukka (Mika)','Porukka tulee seiskaksi normaalisti.']],
+ opts:[
+  o('a','Ohjaa rekka odotusalueelle ja aloita asennus heti aamupalaverin jälkeen noin klo 7.30.',2,[I('rekka',0.3,'Rekka odottaa 20 min')],['kuljetus','asennus','nosturi'],'Rekka odottaa 20 min, asennus alkaa etuajassa.',
+   {kuljetus:'Ajakaa saapuessa odotusalueelle. Purku alkaa noin klo 7.30.',asennus:'K1 tulee jo 7.10. Aloitetaan 2. krs C:n laatat heti palaverin jälkeen noin 7.30.',nosturi:'Laattanostot K1:stä (2. krs C) alkavat noin 7.30, puoli tuntia suunniteltua aiemmin.'}),
+  o('b','Pura laatat maahan odottamaan klo 8.00 asti.',0,[I('nosturi',0.5,'Turha välinosto'),I('asentaja',2,'Purku maahan, 4 hlö × 0,5 h')],['kuljetus','asennus','nosturi'],'Turha välinosto ja laattojen vauriovaara.',
+   {kuljetus:'Puretaan kuorma maahan heti saapuessa.',asennus:'K1 puretaan maahan odottamaan. Laatat asennetaan klo 8.00 alkaen.',nosturi:'K1 puretaan saapuessa maahan, nostot paikoilleen klo 8.00.'}),
+  o('c','Pyydä kuljettajaa odottamaan klo 8.00 asti työmaan ulkopuolella.',1,[I('rekka',1,'Rekka odottaa tunnin')],['kuljetus'],'Rekka odottaa tunnin, asennus alkaa suunnitellusti.',
+   {kuljetus:'Odottakaa työmaan ulkopuolella, purku alkaa klo 8.00.'})],
+ ok:['vastaava'],
+ miss:{asennus:[I('asentaja',2,'Porukka ei tiedä aikaistuksesta')],nosturi:[I('nosturi',0.5,'Nosturi ei ole valmiina')],kuljetus:[I('rekka',0.5,'Rekka jää odottamaan ohjeita')]},
+ ai:{sit:'Kuorma K1 saapuu 50 min etuajassa. Odotusalue on vapaa, ja porukka ja nosturi ovat paikalla klo 7.00.',chain:['K1 saapuu 7.10','Asennus voi alkaa 7.30','2. krs C valmistuu aiemmin'],show:['a','c','b'],rec:'a',
+  why:'Porukka ja nosturi ovat paikalla, ja lohkon C seinät ovat valmiit. Aikaistus ei vaadi muutoksia muille.',src:['resurssit','malli','toimitukset']}},
+
+HB:{type:'Resurssi',title:'Juotosporukka ei pääse',when:'Ke 7.05',start:425,floor:3,
+ alert:['Juotosporukka','Juotosporukka on kiinni toisella työmaalla kaksi päivää. Tänään suunnitellut 3. kerroksen saumajuotokset eivät toteudu.'],
+ sched:[['Ke','3. krs saumajuotokset','Juotosporukka','late'],['Ke','2. krs viimeistelyt ja tuentojen purku','Asennusporukka',''],['To','3. krs pintavalu','Pintavaluurakoitsija','risk'],['Pe','4. krs A seinäelementit','Asennusporukka','risk']],
+ deliv:[['Betoni','Juotosbetoni 3. krs saumoihin','Ke 9.00','Tilattu',''],['K1','4. krs A seinäelementit','Pe 8.00','Tehtaalla','']],
+ model:['---','---','lll','vvv','vvv'],notes:['3. krs: kaikki laatat asennettu, saumat juottamatta'],
+ res:[['Juotosporukka','Poissa ke–to','late'],['Asennusporukka','4 asentajaa, osaavat juotokset, tänään kevyt päivä',''],['Toinen juotosyritys','Vapaana aikaisintaan torstaina','']],
+ docs:[],
+ msgs:[['7.03','Juotosporukka (Timo)','Toinen keikka venyi, ei päästä ennen perjantaita. Sori.'],['6.55','Asennusporukka (Mika)','Tänään vaan kakkosen viimeistelyt.']],
+ opts:[
+  o('a','Asenna perjantaina 4. kerroksen seinät juottamattomien laattojen päälle.',0,[I('paiva',1.5,'Ei sallittu: seinät puretaan ja asennetaan uudelleen')],['asennus'],'Asennussuunnitelma kieltää seinien asennuksen ennen juotoksia.',
+   {asennus:'Perjantaina asennetaan 4. krs seinät, vaikka 3. krs on vielä juottamatta.'}),
+  o('b','Asennusporukka tekee 3. kerroksen juotokset tänään. 2. kerroksen viimeistelyt siirtyvät.',2,[],['asennus','juotos'],'Pintavalu ja 4. kerroksen seinät pysyvät aikataulussa.',
+   {asennus:'Tehkää tänään 3. krs saumajuotokset, betoni tulee klo 9.00. Kakkosen viimeistelyt siirtyvät.',juotos:'Selvä. Asennusporukka tekee 3. krs juotokset tänään, joten sinne ei tarvitse tulla.'}),
+  o('c','Tilaa toinen juotosyritys torstaiksi ja siirrä pintavalu ja seinät päivällä.',1,[I('paiva',1,'Kerros viivästyy päivällä')],['pintavalu','asennus','juotos','tehdas'],'Kerros viivästyy päivällä.',
+   {pintavalu:'3. krs juotokset siirtyvät torstaille. Pintavalu siirtyy perjantaille.',asennus:'Juotokset tekee toinen yritys torstaina. 4. krs seinät siirtyvät maanantaille.',juotos:'Tilaamme 3. krs juotokset toiselta yritykseltä torstaiksi.',tehdas:'Siirtäkää 4. krs A:n seinäelementit (K1) perjantailta maanantaille.'}),
+  o('d','Odota oman juotosporukan paluuta.',0,[I('paiva',2,'Kerros viivästyy kaksi päivää')],['pintavalu','asennus','tehdas'],'Kerros viivästyy kaksi päivää.',
+   {pintavalu:'3. krs juotokset viivästyvät. Pintavalu siirtyy kahdella päivällä.',asennus:'Odotetaan juotosporukkaa. 4. krs seinät siirtyvät kahdella päivällä.',tehdas:'Siirtäkää K1 (4. krs A:n seinät) kahdella työpäivällä.'})],
+ ok:['vastaava'],
+ miss:{asennus:[I('asentaja',2,'Porukka ei tiedä uudesta työstä')]},
+ ai:{sit:'Juotosporukka on poissa ke–to. Asennusporukalla on kevyt päivä, ja he osaavat juotokset. Juotosbetoni on tilattu klo 9.',chain:['3. krs saumat juottamatta','To pintavalu ei voi alkaa','Pe 4. krs seinät siirtyvät'],show:['b','c','d'],rec:'b',
+  why:'Asennusporukka voi tehdä juotokset tänään, ja betoni on jo tilattu. Silloin pintavalu ja seinäasennukset pysyvät aikataulussa.',src:['resurssit','toimitukset','suunnitelmat']}},
+
+/* ===== MITATTAVAT HÄIRIÖT ===== */
+S1:{type:'Toimitus',title:'Laattakuorma neljä tuntia myöhässä',when:'Ti 7.40',start:460,floor:3,
+ alert:['Kuljetusliike','3. kerroksen lohkon B ontelolaattakuorma K1 (12 laattaa) on noin neljä tuntia myöhässä. Rekan vaihteisto hajosi matkalla. Arvioitu saapuminen klo 12.00.'],
+ sched:[['7.00–8.00','Aamupalaveri, nostojen valmistelu','Asennusporukka','done'],['8.00–11.00','3. krs B ontelolaatat (K1)','Asennusporukka','late'],['11.00–14.00','3. krs C ontelolaatat (K2)','Asennusporukka',''],['13.00–15.30','3. krs A ja B saumajuotokset','Juotosporukka','risk']],
+ deliv:[['K1','3. krs B · 12 laattaa','8.00','Myöhässä, arvio 12.00','late'],['K2','3. krs C · 11 laattaa','11.00','Lastattu tehtaalla, lähtö 10.15',''],['Betoni','Juotosbetoni 3. krs A ja B','13.00','Tilattu','']],
+ model:['---','---','lss','vvv','vvv'],notes:['3. krs A: laatat asennettu eilen, saumat juottamatta','3. krs B ja C: seinät tuettu, valmiit laatoille','4. krs: seinäelementtejä ei ole vielä toimitettu'],
+ res:[['Torninosturi','Varattu laattanostoille koko päiväksi',''],['Asennusporukka','4 asentajaa paikalla',''],['Juotosporukka','2 hlö, tulossa klo 13.00',''],['Työaika','7.00–15.30, ylityöstä 50 % lisä','']],
+ docs:[],
+ msgs:[['7.38','Kuljetusliike','K1:n vaihteisto hajosi, uusi veturi tulossa. Perillä aikaisintaan 12.'],['7.15','Elementtitehdas (Sanna)','K2 on lastattu ja lähtee 10.15 sovitusti.'],['7.02','Asennusporukka (Mika)','Ollaan valmiina, odotetaan vaan kuormaa.']],
+ opts:[
+  o('a','Pyydä tehtaalta 4. kerroksen seinäelementit tälle päivälle ja aloita niillä lohkosta A, jossa laatat on jo asennettu.',0,[I('asentaja',12,'Porukka odottaa elementtejä, 4 hlö × 3 h'),I('nosturi',3,'Nosturi odottaa 3 h'),I('paiva',0.5,'Työ keskeytetään: seiniä ei saa asentaa ennen juotoksia')],['tehdas','asennus','nosturi'],'Ei sallittu: lohkon A saumat ovat juottamatta, eikä seiniä saa asentaa ennen juotoksia.',
+   {tehdas:'K1 on myöhässä. Voitteko toimittaa 4. krs A:n seinäelementit jo tänään aamupäivällä?',asennus:'K1 myöhässä. Aloitetaan 4. krs A:n seinät heti, kun elementit tulevat.',nosturi:'Aamupäivän nostot: 4. krs A:n seinäelementit laattojen sijaan.'}),
+  o('b','Porukka tekee aamupäivän 3. krs A:n saumojen valmisteluja. Lohko C asennetaan klo 11 aikataulussa ja B sen jälkeen ylitöinä.',1,[I('asentaja',6,'Aamupäivän valmistelutyöt vain osin tuottavia'),I('rekka',2,'K1 odottaa purkua klo 12–14'),I('asentaja',9,'Ylityö 4 hlö × 1,5 h, 50 % lisä'),I('nosturi',1.5,'Nosturin ylityö')],['asennus','nosturi','juotos'],'Molemmat lohkot valmistuvat tänään, mutta ylitöinä, ja K1:n rekka odottaa purkua.',
+   {asennus:'K1 myöhässä. Aamupäivä 3. krs A:n saumojen valmisteluja, C klo 11 ja B sen jälkeen ylitöinä.',nosturi:'Laattanostot alkavat vasta klo 11: ensin K2 (3. krs C), sitten K1 (3. krs B). Menee ylitöiksi.',juotos:'Lohkon B laatat asennetaan vasta illalla. Tehkää tänään A, B huomenna.'}),
+  o('c','Pyydä tehdasta lähettämään lohkon C kuorma K2 heti. Asenna C ensin ja B iltapäivällä, kun K1 saapuu.',2,[I('asentaja',4,'Porukka odottaa K2:ta noin tunnin'),I('nosturi',1,'Nosturi odottaa tunnin')],['tehdas','asennus','nosturi','juotos'],'Porukka odottaa noin tunnin, ja molemmat lohkot valmistuvat tänään normaalina työaikana.',
+   {tehdas:'K1 on 4 h myöhässä. Voitteko lähettää K2:n (3. krs C) heti eikä klo 10.15? Asennamme C:n ensin.',asennus:'K1 myöhässä, tulee noin klo 12. K2 tulee noin klo 9, aloitetaan lohko C. B iltapäivällä.',nosturi:'Järjestys muuttuu: ensin K2 (3. krs C) noin klo 9, sitten K1 (3. krs B) noin klo 12.',juotos:'3. krs B:n laatat asennetaan vasta iltapäivällä. Tehkää tänään A, B huomenna.'}),
+  o('d','Pidä alkuperäinen järjestys: porukka odottaa K1:tä, B asennetaan klo 12 ja C sen jälkeen.',0,[I('asentaja',14,'Porukka odottaa 3,5 h'),I('nosturi',3.5,'Nosturi seisoo 3,5 h'),I('rekka',3,'K2 odottaa purkua klo 11–14'),I('paiva',0.5,'Lohko C ei ehdi valmiiksi tänään')],['asennus','nosturi','juotos'],'Porukka ja nosturi seisovat aamupäivän, eikä lohko C ehdi valmiiksi tänään.',
+   {asennus:'K1 myöhässä, arvio klo 12. Odotetaan, B asennetaan ensin ja C sen jälkeen.',nosturi:'Laattanostot alkavat vasta klo 12, kun K1 saapuu.',juotos:'Lohkon B laatat tulevat vasta iltapäivällä. B:n juotokset siirtyvät huomiseen.'})],
+ ok:['vastaava','kuljetus','tehdas'],
+ miss:{tehdas:[I('asentaja',10,'Tehdas ei saa pyyntöä: porukka odottaa 2,5 h lisää'),I('nosturi',2.5,'Nosturi odottaa 2,5 h lisää')],asennus:[I('asentaja',4,'Porukka ei tiedä uutta järjestystä')],nosturi:[I('nosturi',0.5,'Nostot valmisteltu väärälle kuormalle')],juotos:[I('asentaja',4,'Juotosporukka (2 hlö) tulee lohkoon B turhaan')]},
+ ai:{sit:'Lohkon B kuorma K1 on 4 h myöhässä. Lohkon C kuorma K2 on jo lastattu tehtaalla, ja C:n seinät ovat valmiit laatoille.',chain:['K1 myöhässä 4 h','3. krs B:n asennus siirtyy iltapäivään','B:n juotokset siirtyvät huomiseen','Porukka ja nosturi joutilaina aamupäivän'],show:['c','b','d'],rec:'c',
+  why:'K2 on valmiina lähtöön, ja lohko C on valmis laatoille. Lähtöajan muutos ehditään sopia yli tuntia etukäteen. Järjestystä vaihtamalla vältetään ylityöt, ja porukka odottaa vain noin tunnin.',src:['toimitukset','malli','suunnitelmat']}},
+
+S3:{type:'Elementti',title:'Laatta 40 mm liian pitkä',when:'Ke 8.30',start:510,floor:4,
+ alert:['Asennusporukka','Laatta OL-4B-09 on noin 40 mm liian pitkä eikä mahdu tukien väliin. Laatan pituus on 7 240 mm, tietomallissa 7 200 mm.'],
+ sched:[['8.00–11.00','4. krs B ontelolaatat (K1, 11 laattaa)','Asennusporukka','risk'],['11.00–14.00','4. krs C ontelolaatat (K2)','Asennusporukka',''],['Torstai','4. krs B saumajuotokset','Juotosporukka','risk']],
+ deliv:[['K1','4. krs B · 11 laattaa','8.00','Työmaalla, 8/11 asennettu','risk'],['K2','4. krs C · 11 laattaa','11.00','Aikataulussa',''],['Korvaava laatta','Tarvittaessa','–','Valmistus noin 2 työpäivää tilauksesta','']],
+ model:['---','lss','vvv','vvv','vvv'],notes:['4. krs B: 8/11 laattaa asennettu','OL-4B-09: mallissa 7 200 mm, toimitettu 7 240 mm','Tukien väli mitattu työmaalla: 7 210 mm (suunniteltu 7 220 ± 10 mm)'],
+ res:[['Torninosturi','Laattanostoissa',''],['Asennusporukka','4 asentajaa',''],['Rakennesuunnittelija','Tavoitettavissa, vastaa yleensä muutamassa tunnissa',''],['Timanttisahaus','Saatavilla työmaalle tänään, noin 450 €','']],
+ docs:[],
+ msgs:[['8.28','Asennusporukka (Mika)','Ysi ei mahdu, 4 senttiä liikaa. Sahataanko pää? Sahuri pääsisi tänään.'],['7.50','Elementtitehdas (Sanna)','K2 lähtee 10.15.']],
+ opts:[
+  o('a','Lyhennä laattaa työmaalla 40 mm timanttisahalla ja ilmoita muutoksesta suunnittelijalle ja tehtaalle.',0,[I('eur',1200,'Luvaton muutos: korvausoikeus menetetään, ja laatta joudutaan todennäköisesti vaihtamaan'),I('paiva',1,'Vaihto ja uusi asennus')],['asennus','suunnittelija','tehdas'],'Elementtiä ei saa lyhentää ilman suunnittelijan kirjallista hyväksyntää. Jälkikäteen ilmoittaminen ei riitä.',
+   {asennus:'Tilataan sahuri: ysistä 40 mm pois ja laatta paikalleen.',suunnittelija:'Tiedoksi: OL-4B-09 oli 40 mm liian pitkä, lyhennämme sen työmaalla timanttisahalla.',tehdas:'Tiedoksi: OL-4B-09 toimitettiin 40 mm liian pitkänä, lyhennämme sen työmaalla.'}),
+  o('b','Jätä laatta sivuun ja jatka muilla. Tilaa tehtaalta uusi oikean mittainen laatta reklamaationa.',1,[I('asentaja',1.2,'Laatan siirto sivuun'),I('paiva',0.5,'Uusi laatta vie noin 2 työpäivää: lohkon B juotokset viivästyvät')],['tehdas','asennus','juotos'],'Uusi laatta tulee tehtaan kustannuksella, mutta vasta noin kahden työpäivän päästä.',
+   {tehdas:'Reklamaatio: OL-4B-09 on 7 240 mm, mallissa 7 200 (toleranssi ±15). Tilaamme uuden oikean mittaisen laatan.',asennus:'Ysi sivuun, jatketaan 10 ja 11. Tilalle tulee uusi laatta.',juotos:'4. krs B:n paikka 9 jää auki pariksi päiväksi. Torstain juotokset siirtyvät siltä osin.'}),
+  o('c','Jätä laatta sivuun ja jatka muilla. Pyydä rakennesuunnittelijalta lupa lyhentää laattaa työmaalla.',1,[I('asentaja',1.2,'Laatan siirto sivuun'),I('eur',450,'Sahaus jää omaksi kustannukseksi, koska poikkeamasta ei ilmoitettu tehtaalle')],['suunnittelija','asennus'],'Laatta saadaan paikalleen nopeasti, mutta sahaus jää omaksi kustannukseksi.',
+   {suunnittelija:'OL-4B-09 on 7 240 mm, tukiväli 7 210. Saako laattaa lyhentää työmaalla 40 mm? Pyydämme kirjallisen luvan.',asennus:'Ysi sivuun, jatketaan 10 ja 11. Ei sahata ennen suunnittelijan lupaa.'}),
+  o('d','Jätä laatta sivuun ja jatka muilla. Ilmoita poikkeama tehtaalle ja pyydä suunnittelijalta päätös korjaustavasta.',2,[I('asentaja',1.2,'Laatan siirto sivuun')],['suunnittelija','tehdas','asennus'],'Asennus jatkuu, suunnittelija päättää korjaustavan, ja kustannukset menevät tehtaalle.',
+   {suunnittelija:'OL-4B-09 toimitettu 7 240 mm, mallissa 7 200, tukiväli 7 210. Saako laattaa lyhentää vai tarvitaanko uusi?',tehdas:'OL-4B-09 on 40 mm liian pitkä, toleranssin ulkopuolella. Laatta on asentamatta. Pyydämme teitä toteamaan poikkeaman ja vastaamaan korjauksesta.',asennus:'Ysi sivuun, jatketaan 10 ja 11. Ei sahata ennen suunnittelijan lupaa.'})],
+ ok:['juotos','vastaava','nosturi','valvoja','tehdas','suunnittelija'],
+ miss:{suunnittelija:[I('paiva',0.5,'Päätös korjaustavasta viivästyy')],tehdas:[I('eur',450,'Tehdas ei saa tietoa: korjaus jää omaksi kustannukseksi')],asennus:[I('asentaja',2,'Porukka odottaa ohjeita')],juotos:[I('asentaja',2,'Juotosporukka ei tiedä auki jäävästä paikasta')]},
+ ai:{sit:'Laatta OL-4B-09 on 40 mm mallia pidempi ja 25 mm toleranssin ulkopuolella. Tukien väli on toleranssissa, joten virhe on laatassa.',chain:['Laatta liian pitkä','Laattaa ei voi asentaa','Lohkon B yksi paikka jää auki','Torstain juotokset voivat siirtyä osittain'],show:['d','c','b'],rec:'d',
+  why:'Lyhentäminen vaatii suunnittelijan kirjallisen hyväksynnän. Sopimuksen mukaan tehdas vastaa korjauksesta vain, jos poikkeamasta ilmoitetaan sille ennen kuin laattaa muokataan. Laatat eivät kanna toisiaan, joten muut voi asentaa.',src:['malli','suunnitelmat','resurssit']}},
+
+S5:{type:'Resurssi',title:'Nosturin hydrauliikkavika',when:'To 6.20',start:380,floor:4,
+ alert:['Nosturinkuljettaja','Torninosturin hydrauliikassa on vuoto. Huoltomies on paikalla klo 11.30, ja nosturi on käytössä aikaisintaan klo 12.00.'],
+ sched:[['9.15–11.45','4. krs B ontelolaatat (K1)','Asennusporukka','late'],['11.45–14.15','4. krs C ontelolaatat (K2)','Asennusporukka','late'],['14.15–15.30','Porraselementit, porras A (K3)','Asennusporukka','risk'],['8.00–15.00','4. krs A saumajuotokset','Juotosporukka',''],['Pe','Varapäivä: ei varattuja nostoja eikä asennuksia','Asennusporukka ja nosturi','']],
+ deliv:[['K1','4. krs B · 11 laattaa','9.15','Lastattu, lähtö 8.30','risk'],['K2','4. krs C · 11 laattaa','11.45','Tehtaalla',''],['K3','2 porraselementtiä','14.15','Tehtaalla','']],
+ model:['---','lss','vvv','vvv','vvv'],notes:['4. krs A: laatat asennettu, juotokset tänään','4. krs B ja C: seinät valmiit laatoille'],
+ res:[['Torninosturi','Poissa käytöstä, arvio klo 12.00','late'],['Asennusporukka','4 asentajaa paikalla klo 7.00',''],['Juotosporukka','2 hlö, 4. krs A. Apukäsille olisi töitä, nosturia ei tarvita.',''],['Autonosturi','Vuokraamosta noin klo 9.30, vuokra 1 600 €/päivä',''],['Työaika','7.00–15.30, ylityöstä 50 % lisä','']],
+ docs:[],
+ msgs:[['6.18','Nosturinkuljettaja (Jari)','Hydrauliikkaletku vuotaa, ei voi nostaa. Huolto tulossa 11.30.'],['6.10','Elementtitehdas (Sanna)','K1 lähtee 8.30.']],
+ opts:[
+  o('a','Porukka auttaa aamupäivän juotoksissa. Siirrä K1 klo 12:een ja K2 ja K3 perjantaille.',2,[I('asentaja',2,'Siirtymä juotostöihin')],['tehdas','asennus','juotos'],'Aamupäivä käytetään juotoksiin, lohko B asennetaan iltapäivällä ja loput perjantain varapäivänä.',
+   {tehdas:'Torninosturi rikki klo 12 asti. Siirtäkää K1 klo 12.00 ja K2 ja K3 perjantaiaamuun.',asennus:'Nosturi rikki klo 12 asti. Aamupäivä 4. krs A:n juotoksissa, lohko B iltapäivällä, C ja portaat perjantaina.',juotos:'Asennusporukka tulee aamupäiväksi avuksi 4. krs A:n juotoksiin.'}),
+  o('b','Tilaa autonosturi ja asenna K1 ja K2 sillä aikataulun mukaan. K3 nostetaan torninosturilla iltapäivällä.',1,[I('eur',1600,'Autonosturin vuokra'),I('asentaja',1,'Porukka odottaa autonosturia 15 min')],['asennus','kuljetus'],'Päivän aikataulu pitää, mutta autonosturin vuokra on turha kulu, koska perjantai on varapäivä.',
+   {asennus:'Torninosturi rikki klo 12 asti. Autonosturi tulee noin 9.30, K1 ja K2 asennetaan sillä.',kuljetus:'K1 ja K2 puretaan autonosturilla. K1:n purku alkaa noin 9.30.'}),
+  o('c','Porukka auttaa aamupäivän juotoksissa. Kaikki kolme kuormaa puretaan iltapäivällä ja illalla ylitöinä.',1,[I('asentaja',2,'Siirtymä juotostöihin'),I('asentaja',16.5,'Ylityö 4 hlö × 2,75 h, 50 % lisä'),I('nosturi',2.75,'Nosturin ylityö')],['tehdas','asennus','juotos','nosturi'],'Kaikki valmistuu tänään, mutta ylityöt ovat turha kulu, koska perjantai on varapäivä.',
+   {tehdas:'Torninosturi rikki klo 12 asti. Siirtäkää K1 klo 12.00, K2 klo 14.30 ja K3 klo 17.00.',asennus:'Aamupäivä 4. krs A:n juotoksissa. Kaikki kolme kuormaa iltapäivällä ja illalla, menee ylitöiksi.',juotos:'Asennusporukka tulee aamupäiväksi avuksi 4. krs A:n juotoksiin.',nosturi:'Kun nosturi toimii, nostetaan K1, K2 ja K3 putkeen. Menee ylitöiksi noin klo 18.15 asti.'}),
+  o('d','Odota huoltoa: kuormat tulevat aikataulussa ja puretaan heti, kun nosturi toimii.',0,[I('rekka',6,'K1 ja K2 odottavat purkua työmaalla'),I('asentaja',11,'Porukka odottaa 9.15–12.00'),I('paiva',0.5,'Lohko C ja portaat eivät ehdi valmiiksi tänään')],['asennus','kuljetus'],'Rekat ja porukka odottavat tunteja, eikä kaikkea ehditä asentaa tänään.',
+   {asennus:'Nosturi rikki klo 12 asti. Kuormat tulevat normaalisti, puretaan heti kun nosturi toimii.',kuljetus:'Torninosturi on rikki klo 12 asti. K1 ja K2 joutuvat odottamaan purkua työmaalla.'})],
+ ok:['vastaava','nosturi','kuljetus','tehdas'],
+ miss:{tehdas:[I('rekka',6,'Kuormat lähtevät aikataulussa ja odottavat työmaalla')],asennus:[I('asentaja',4,'Porukka ei tiedä uudesta työstä')],juotos:[I('asentaja',2,'Juotosporukka ei ole varautunut apuun')],kuljetus:[I('rekka',1,'Kuljettajat eivät tiedä odotuksesta')],nosturi:[I('nosturi',1,'Kuljettaja ei tiedä ylitöistä')]},
+ ai:{sit:'Torninosturi on poissa käytöstä noin klo 12 asti. K1 lähtee tehtaalta klo 8.30. Perjantai on varapäivä ilman varattuja töitä.',chain:['Nosturi pois käytöstä aamupäivän','K1 ja K2 eivät voi purkaa aikataulussa','K3 siirtyy','Porukka joutilaana aamupäivän'],show:['a','c','b'],rec:'a',
+  why:'Juotokset eivät tarvitse nosturia, joten porukalla on aamupäivällä tekemistä. Perjantai on varapäivä, joten autonosturia tai ylitöitä ei tarvita. Lähtöaikojen muutos ehditään sopia yli tuntia ennen K1:n lähtöä.',src:['aikataulu','resurssit','toimitukset']}},
+
+S4:{type:'Toimitus',title:'Väärä lastausjärjestys',when:'Ti 7.55',start:475,floor:3,
+ alert:['Asennusporukka','Kuorma K1 saapui, mutta lohkon C laatat ovat päällimmäisinä. Asennus on suunniteltu aloitettavaksi lohkosta A, jonka laatat ovat kuorman pohjalla.'],
+ sched:[['8.00–10.30','3. krs A ontelolaatat (K1)','Asennusporukka','risk'],['10.30–13.00','3. krs C ontelolaatat (K1)','Asennusporukka',''],['13.00–15.30','3. krs A saumajuotokset','Juotosporukka','risk']],
+ deliv:[['K1','3. krs A + C · 14 laattaa','8.00','Työmaalla, lastausjärjestys väärä','risk'],['K2','3. krs B · 11 laattaa','Huomenna 8.00','Aikataulussa','']],
+ model:['---','---','sks','vvv','vvv'],notes:['3. krs A: seinät tuettu, valmis laatoille','3. krs C: seinät tuettu eilen, valmis laatoille','3. krs B: seinäelementit kesken','2. krs: laatat juotettu, pintavalu tekemättä'],
+ res:[['Torninosturi','Varattu laattanostoille',''],['Asennusporukka','4 asentajaa',''],['Juotosporukka','2 hlö, tulossa klo 13.00',''],['Välivarasto','Maassa nosturin ulottumalla, tilaa noin 8 laatalle','']],
+ docs:[],
+ msgs:[['7.54','Asennusporukka (Mika)','C:n laatat on päällä. Puretaanko ne välivarastoon vai nostetaanko kakkosen holville odottamaan?'],['7.30','Elementtitehdas (Sanna)','K1 lastattu asennusjärjestyksessä A → C.']],
+ opts:[
+  o('a','Pura C:n laatat välivarastoon maahan ja asenna lohkot suunnitellussa järjestyksessä A ja C.',1,[I('nosturi',1.5,'Tuplanostot'),I('asentaja',6,'Purku ja lajittelu, 4 hlö × 1,5 h')],['asennus','nosturi'],'Tuplanostot vievät noin 1,5 h, ja laatat voivat vaurioitua välivarastoinnissa.',
+   {asennus:'Puretaan C:n laatat välivarastoon maahan ja aloitetaan A:sta suunnitelman mukaan.',nosturi:'Ensin C:n laatat välivarastoon, sitten A:n laatat paikoilleen ja lopuksi C välivarastosta.'}),
+  o('b','Vaihda asennusjärjestys: asenna ensin lohko C ja sitten A. Juotokset aloitetaan C:stä.',2,[],['asennus','nosturi','juotos'],'Ei viivettä: laatat nostetaan suoraan kuormasta paikoilleen.',
+   {asennus:'Aloitetaan lohkosta C, koska sen laatat ovat päällä. A sen jälkeen.',nosturi:'Nostojärjestys muuttuu: ensin 3. krs C, sitten A.',juotos:'Laatat asennetaan järjestyksessä C ja A. Aloittakaa juotokset klo 13 lohkosta C.'}),
+  o('c','Nosta C:n laatat odottamaan 2. kerroksen valmiin laataston päälle ja asenna A ensin.',0,[I('nosturi',1.5,'Tuplanostot'),I('asentaja',6,'Purku ja lajittelu'),I('eur',900,'Luvaton välivarastointi: laataston tarkastus'),I('paiva',0.5,'Työ keskeytyy tarkastuksen ajaksi')],['asennus','nosturi'],'Elementtejä ei saa välivarastoida asennetun laataston päälle ilman rakennesuunnittelijan lupaa.',
+   {asennus:'Nostetaan C:n laatat kakkosen holville odottamaan ja aloitetaan A:sta.',nosturi:'Ensin C:n laatat 2. krs holville, sitten A paikoilleen ja lopuksi C holvilta.'}),
+  o('d','Asenna tänään vain lohko C ja siirrä A huomiseen, jotta juotosporukka pääsee C:hen heti iltapäivällä.',1,[I('nosturi',1,'A:n laatat puretaan maahan ja nostetaan huomenna uudelleen'),I('asentaja',4,'Purku ja uusi nosto'),I('paiva',0.5,'Lohko A siirtyy huomiseen')],['asennus','nosturi','juotos'],'Lohko A siirtyy turhaan huomiseen, vaikka molemmat lohkot ehtisi asentaa tänään.',
+   {asennus:'Asennetaan tänään vain lohko C. A:n laatat puretaan maahan ja asennetaan huomenna.',nosturi:'Tänään 3. krs C paikoilleen ja A:n laatat maahan. A nostetaan huomenna.',juotos:'Tänään asennetaan vain lohko C. Aloittakaa juotokset klo 13 lohkosta C, A siirtyy huomiseen.'})],
+ ok:['tehdas','vastaava','kuljetus'],
+ miss:{juotos:[I('asentaja',3,'Juotosporukka (2 hlö) aloittaa väärästä lohkosta')],nosturi:[I('nosturi',0.5,'Nostot valmisteltu väärään järjestykseen')],asennus:[I('asentaja',2,'Porukka odottaa ohjeita')]},
+ ai:{flawed:true,sit:'Kuorma K1 on lastattu väärään järjestykseen: lohkon C laatat ovat päällä, vaikka asennus alkaa aikataulun mukaan lohkosta A.',chain:['Lastausjärjestys väärä','Lohkon A asennus ei voi alkaa suoraan','Laatat on lajiteltava','Asennus viivästyy noin 1,5 h'],show:['a','d'],rec:'a',
+  why:'Aikataulun mukaan asennus alkaa lohkosta A ja juotosporukka tulee lohkoon A klo 13. Kun laatat lajitellaan välivarastoon, työ etenee suunnitellussa järjestyksessä.',src:['aikataulu','toimitukset','resurssit']}},
+
+S2:{type:'Elementti',title:'Laatta vaurioitunut kuljetuksessa',when:'Pe 13.20',start:800,floor:3,
+ dl:{rid:'tehdas',at:830,label:'Katselmuspyyntö tehtaalle'},
+ alert:['Asennusporukka','Kuorman K2 laatan OL-3B-04 pää on lohjennut noin 300 mm matkalta, ja tukipinta on vaurioitunut. Lohkon B laatoista 3/11 on asennettu.'],
+ sched:[['10.00–14.00','3. krs B ontelolaatat (K2, 11 laattaa)','Asennusporukka','risk'],['14.00–15.30','3. krs A saumajuotokset','Juotosporukka',''],['Ma','3. krs B saumajuotokset','Juotosporukka','risk'],['Ti–ke','4. krs A seinäelementit','Asennusporukka','risk'],['Ke','3. krs pintavalu','Pintavaluurakoitsija','']],
+ deliv:[['K2','3. krs B · 11 laattaa','10.00','Työmaalla, 1 vaurioitunut','risk'],['K3','4. krs A seinäelementit','Ti 8.00','Tehtaalla',''],['Korvaava laatta','OL-3B-04','–','Valmistus noin 2 työpäivää. Tehdas ei valmista eikä toimita viikonloppuna.','']],
+ model:['---','---','lsl','vvv','vvv'],notes:['3. krs B: 3/11 laattaa asennettu, seinät valmiit','OL-3B-04 on lohkon B neljäs laatta','Vaurio on tukipinnassa eli laatan kantavassa päässä'],
+ res:[['Torninosturi','Laattanostoissa',''],['Asennusporukka','4 asentajaa',''],['Rakennesuunnittelija','Tavoitettavissa, vastaa yleensä seuraavana työpäivänä',''],['Tehtaan laatupäällikkö','Lähistöllä toisella työmaalla tänään','risk']],
+ docs:[],
+ msgs:[['13.19','Asennusporukka (Mika)','Nelosen pää on rikki, otin kuvat. Laitetaanko tuettuna paikalleen vai jätetäänkö sivuun?'],['12.55','Elementtitehdas (Sanna)','Tiedoksi: laatupäällikkömme on tänään toisella työmaalla lähellä teitä. Jos tarvitsette häntä, pyynnön pitää olla perillä klo 13.50 mennessä, niin hän ehtii teille klo 15. Seuraavan kerran hän pääsee tiistaina.'],['9.40','Pintavaluurakoitsija (Ville)','Keskiviikon valu 3. krs vahvistettu.']],
+ opts:[
+  o('a','Jätä laatta sivuun ja jatka muilla. Lähetä kuvat rakennesuunnittelijalle ja kysy, voiko laatan korjata työmaalla.',1,[I('asentaja',1.2,'Laatan siirto sivuun'),I('paiva',1,'Korjauspäätös vasta maanantaina: korvaava laatta ja lohkon B juotokset viivästyvät')],['suunnittelija','asennus','juotos'],'Asennus jatkuu, mutta päätös siirtyy ensi viikkoon, eikä poikkeamaa todeta tehtaan kanssa tänään.',
+   {suunnittelija:'OL-3B-04:n pää lohjennut noin 300 mm, tukipinta vaurioitunut (kuvat liitteenä). Voiko laatan korjata työmaalla vai pitääkö se vaihtaa?',asennus:'Nelonen sivuun, jatketaan muilla ja jätetään sen paikka auki.',juotos:'3. krs B:n paikka 4 jää auki. Maanantain juotokset tehdään siltä osin myöhemmin.'}),
+  o('b','Jätä laatta sivuun ja jatka muilla. Pyydä tehtaan laatupäällikkö katselmukseen tänään ja tee reklamaatio.',2,[I('asentaja',1.2,'Laatan siirto sivuun')],['tehdas','asennus','juotos'],'Asennus jatkuu. Poikkeama todetaan tänään klo 15, korvaava laatta tulee tiistaina tehtaan kustannuksella.',
+   {tehdas:'Reklamaatio: OL-3B-04:n pää lohjennut noin 300 mm, tukipinta vaurioitunut (kuvat liitteenä). Pyydämme laatupäällikön katselmukseen tänään klo 15.',asennus:'Nelonen sivuun, jatketaan muilla ja jätetään sen paikka auki. Katselmus tänään klo 15.',juotos:'3. krs B:n paikka 4 jää auki. Juottakaa maanantaina muut saumat, paikka 4 korvaavan laatan jälkeen.'},
+   {dlItems:[I('paiva',1,'Pyyntö myöhästyi: katselmus siirtyy tiistaille, ja korvaava laatta viivästyy')]}),
+  o('c','Jätä laatta sivuun ja jatka muilla. Tilaa tehtaalta korvaava laatta heti kiireellisenä.',1,[I('asentaja',1.2,'Laatan siirto sivuun'),I('eur',1200,'Korvaava laatta omalla kustannuksella, koska poikkeamaa ei todettu yhdessä tehtaan kanssa'),I('eur',400,'Kiirehtimislisä')],['tehdas','asennus','juotos'],'Korvaava laatta tulee tiistaina, mutta omalla kustannuksella, koska poikkeamaa ei todettu yhdessä.',
+   {tehdas:'OL-3B-04 on vaurioitunut kuljetuksessa. Tilaamme korvaavan laatan kiireellisenä.',asennus:'Nelonen sivuun, jatketaan muilla. Korvaava laatta on tilattu.',juotos:'3. krs B:n paikka 4 jää auki. Juottakaa maanantaina muut saumat.'}),
+  o('d','Asenna laatta paikalleen väliaikaisesti tuettuna ja pyydä suunnittelijalta korjausohje ennen juotoksia.',0,[I('paiva',2,'Laatta joudutaan todennäköisesti purkamaan ja vaihtamaan'),I('eur',1200,'Korvaava laatta omalla kustannuksella, koska laatta asennettiin')],['asennus','suunnittelija','juotos'],'Vaurioitunut tukipinta on turvallisuusriski, eikä asennettua laattaa enää korvata.',
+   {asennus:'Asennetaan nelonen paikalleen ja tuetaan pää väliaikaisesti.',suunnittelija:'OL-3B-04:n pää on lohjennut. Laatta on asennettu tuettuna. Pyydämme korjausohjeen ennen juotoksia.',juotos:'OL-3B-04 on tuettuna paikallaan. Älkää juottako sen saumoja ennen korjausohjetta.'})],
+ ok:['vastaava','valvoja','pintavalu','suunnittelija','nosturi','tehdas'],
+ miss:{tehdas:[I('paiva',1,'Tehdas ei saa pyyntöä: korvaava laatta viivästyy'),I('eur',1200,'Korvaus jää saamatta')],asennus:[I('asentaja',2,'Porukka odottaa ohjeita')],juotos:[I('asentaja',3,'Juotosporukka (2 hlö) valmistelee väärät saumat')],suunnittelija:[I('paiva',0.5,'Korjauspäätös viivästyy')]},
+ ai:{sit:'Laatan OL-3B-04 tukipinta on vaurioitunut. On perjantai: tehtaan laatupäällikkö ehtii katselmukseen tänään vain, jos pyyntö on perillä klo 13.50 mennessä. Seuraava mahdollisuus on tiistaina.',chain:['Tukipinta vaurioitunut','Laattaa ei voi asentaa','Lohkon B juotokset jäävät osin kesken','Jos katselmus siirtyy, 4. krs seinät viivästyvät'],show:['b','c','a'],rec:'b',
+  why:'Sopimuksen mukaan tehdas vastaa korvaamisesta ja kiirehtimisestä vain, kun poikkeama todetaan yhdessä ennen asennusta. Katselmus onnistuu tänään, jos pyyntö lähtee klo 13.50 mennessä.',src:['viestit','suunnitelmat','aikataulu']}},
+
+S6:{type:'Elementti',title:'Sama virhe toistuu',when:'To 8.10',start:490,floor:4,
+ alert:['Asennusporukka','Kuorman K1 (4. krs A) laatoissa OL-4A-06 ja OL-4A-09 on halkeamia nostolenkkien kohdalla. Sama virhe löytyi viime viikolla 3. kerroksen laatoista.'],
+ sched:[['8.00–11.00','4. krs A ontelolaatat (K1)','Asennusporukka','risk'],['11.30–14.00','4. krs B ontelolaatat (K2)','Asennusporukka','risk'],['Pe','4. krs C ontelolaatat (K3)','Asennusporukka',''],['Ma','4. krs saumajuotokset','Juotosporukka','']],
+ deliv:[['K1','4. krs A · 12 laattaa','8.00','Työmaalla, 2 halkeillutta','risk'],['K2','4. krs B · 11 laattaa','11.30','Lähtö 10.30, tuotantolinja 2','risk'],['K3','4. krs C · 11 laattaa','Pe 8.00','Tuotantolinja 2','']],
+ model:['---','sss','vvv','vvv','vvv'],notes:['4. krs A: 4/12 laattaa asennettu','OL-4A-06 ja -09: halkeamat nostolenkkien ympärillä','K1 valmistettu tuotantolinjalla 2, kuten viime viikon virheelliset laatat'],
+ res:[['Torninosturi','Laattanostoissa',''],['Asennusporukka','4 asentajaa',''],['Rakennesuunnittelija','Tavoitettavissa, vastaa yleensä muutamassa tunnissa',''],['Tehtaan laatuvastaava','Tavoitettavissa puhelimella','']],
+ docs:[],
+ msgs:[['8.08','Asennusporukka (Mika)','Taas samat halkeamat lenkkien kohdalla kuin viime viikolla. Kaksi kappaletta. Laitetaanko tuettuna paikalleen niin kuin puhuttiin?'],['7.40','Elementtitehdas (Sanna)','K2 lähtee 10.30 linjalta 2.'],['Ti','Elementtitehdas (laatu)','Viime viikon reklamaatio on käsittelyssä. Selvitämme syytä tuotantolinjalla 2. Korjaustavasta ei ole vielä päätöstä.']],
+ opts:[
+  o('a','Jätä halkeilleet sivuun ja jatka muilla. Tee reklamaatio ja tilaa kaksi korvaavaa laattaa.',1,[I('asentaja',1.2,'Laattojen siirto sivuun'),I('paiva',0.5,'K2 ja K3 voivat tulla samalla virheellä')],['tehdas','asennus'],'Tämä kuorma hoituu, mutta seuraavat kuormat tulevat samalta linjalta tarkastamatta.',
+   {tehdas:'Reklamaatio: OL-4A-06 ja -09, halkeamat nostolenkkien kohdalla (kuvat liitteenä). Tilaamme kaksi korvaavaa laattaa.',asennus:'Halkeilleet sivuun, jatketaan muilla. Korvaavat laatat on tilattu.'}),
+  o('b','Keskeytä lohkon A asennus ja jätä loput laatat kuormaan, kunnes rakennesuunnittelija on arvioinut halkeamat.',1,[I('asentaja',8,'Porukka odottaa noin 2 h'),I('nosturi',2,'Nosturi odottaa noin 2 h'),I('paiva',0.5,'K2 ja K3 voivat tulla samalla virheellä')],['suunnittelija','asennus'],'Ehjätkin laatat jäävät odottamaan, ja seuraavat kuormat tulevat samalta linjalta tarkastamatta.',
+   {suunnittelija:'OL-4A-06 ja -09: halkeamat nostolenkkien kohdalla (kuvat liitteenä). Pyydämme arvion ennen kuin jatkamme lohkon A asennusta.',asennus:'Lohko A tauolla, kunnes suunnittelija on arvioinut halkeamat.'}),
+  o('c','Jätä halkeilleet sivuun ja jatka muilla. Pyydä tehdasta tarkastamaan linjan 2 laatat ennen K2:n lähtöä ja suunnittelijalta arvio.',2,[I('asentaja',4,'Porukka odottaa K2:ta noin tunnin tarkastuksen takia'),I('nosturi',1,'Nosturi odottaa tunnin')],['tehdas','asennus','suunnittelija'],'Toistuva virhe pysäytetään ennen seuraavia kuormia, ja korvaukset menevät tehtaalle.',
+   {tehdas:'OL-4A-06 ja -09: samat halkeamat nostolenkkien kohdalla kuin viime viikolla (kuvat liitteenä). Pyydämme tarkastamaan linjan 2 laatat ennen K2:n lähtöä ja korvaamaan virheelliset.',asennus:'Halkeilleet sivuun, jatketaan muilla. K2 voi myöhästyä noin tunnin tehtaan tarkastuksen takia.',suunnittelija:'Pyydämme arvion halkeamista laatoissa OL-4A-06 ja -09 nostolenkkien kohdalla, kuvat liitteenä. Sama virhe kuin viime viikolla.'}),
+  o('d','Asenna myös halkeilleet laatat tuettuina ja sovi korjauksesta tehtaan kanssa samalla kuin viime viikon laatoista.',0,[I('paiva',2,'Jos halkeamat todetaan rakenteellisiksi, laatat vaihdetaan asennettuina'),I('eur',2400,'Kaksi korvaavaa laattaa omalla kustannuksella')],['asennus','tehdas'],'Rakenneriski: korjaustavasta ei ole päätöstä, eikä asennettua laattaa enää korvata.',
+   {asennus:'Asennetaan myös halkeilleet laatat ja tuetaan ne.',tehdas:'OL-4A-06 ja -09: sama halkeama kuin viime viikolla. Asensimme laatat tuettuina, sovitaan korjaus samalla kertaa.'})],
+ ok:['vastaava','valvoja','nosturi','juotos','suunnittelija','tehdas'],
+ miss:{tehdas:[I('paiva',1,'Tehdas ei saa tietoa: K2 lähtee samalla virheellä')],suunnittelija:[I('paiva',0.5,'Arvio halkeamista viivästyy')],asennus:[I('asentaja',2,'Porukka odottaa ohjeita')]},
+ ai:{sit:'Kahdessa K1:n laatassa on samat halkeamat kuin viime viikolla. K2 ja K3 tulevat samalta tuotantolinjalta, ja K2 lähtee klo 10.30.',chain:['Sama virhe toistuu','K2 ja K3 voivat olla virheellisiä','4. krs B ja C vaarassa','Juotokset ja seuraava kerros siirtyvät'],show:['c','a','b'],rec:'c',
+  why:'Virhe toistuu samalla tuotantolinjalla, joten pelkkä reklamaatio ei riitä: linjan 2 laatat pitää tarkastaa ennen kuin K2 lähtee. Ehjät laatat voi asentaa, ja suunnittelija arvioi halkeamat.',src:['toimitukset','malli','viestit']}}
+};
+
+/* ---------- 6. TESTIN KOOSTUMUS ---------- */
+const PRACTICE=[{sid:'HA',cond:'ilman'},{sid:'HB',cond:'ai'}];   // harjoitukset järjestyksessä
+const MEASURED=['S1','S3','S5','S4','S2','S6'];                   // mitattavat häiriöt AINA tässä järjestyksessä
+/* Tekoäly on käytössä puolessa häiriöistä. Versioita on kaksi, ja ne ovat toistensa peilikuvat:
+   jokainen häiriö ratkaistaan versiossa A ilman tekoälyä ja versiossa B sen kanssa, tai päinvastoin.
+   Versio arvotaan testaajalle, tai sen voi määrätä linkillä (…#a tai …#b). */
+const AI_VERSIONS={A:['S3','S4','S2'],B:['S1','S5','S6']};
+const SPEED=10;                                                    // simulaatiokellon nopeus: 1 min = 10 min työmaalla
+/* ===================== MUOKATTAVA OSA PÄÄTTYY ===================== */
+
+</script>
+<script>
+/* ===== CONSTRUCTION NAVIGATOR SIMULATOR – SOVELLUS v2 ===== */
+const TABS=[['aikataulu','Aikataulu'],['toimitukset','Toimitukset'],['malli','Tietomalli'],['resurssit','Resurssit'],['suunnitelmat','Suunnitelmat'],['viestit','Viestit']];
+const TABNAME=Object.fromEntries(TABS);
+const TABDESC={aikataulu:'Päivän ja viikon työvaiheet',toimitukset:'Kuormat, saapumisajat ja niiden tilanne',malli:'Rungon valmiusaste kerroksittain ja lohkoittain',resurssit:'Nosturi, työporukat ja kustannusarviot',suunnitelmat:'Rungon asennussuunnitelma ja toimitussopimus',viestit:'Työmaan viimeisimmät viestit'};
+const STW={v:'Valmis',l:'Asennettu',s:'Odottaa laattoja',k:'Seinät kesken','-':''};
+const STN={v:'Valmis, laatat juotettu',l:'Laatat asennettu, juotokset kesken',s:'Seinät valmiit, odottaa laattoja',k:'Seinät kesken','-':'Ei aloitettu'};
+const STL={late:'Myöhässä',risk:'Vaarassa',done:'Valmis'};
+const ROLES=['Työnjohtaja','Vastaava työnjohtaja','Projekti-insinööri','Työmaainsinööri','Tuotannonsuunnittelija','Muu rakennusalan ammattilainen','Opiskelija'];
+const GROUPS={all:'Kaikki',pro:'Ammattilaiset',student:'Opiskelijat'};
+const RNAME=Object.fromEntries(RECIP.map(r=>[r.id,r.n]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const app=document.getElementById('app');
+const LS_CUR='cnsim3-current',LS_RUNS='cnsim3-runs';
+const S={screen:'welcome',db:null,dl:null,owner:false,ready:false,runs:[],
+  cfg:{rates:{...DEFAULT_RATES},calc:{perMonth:4,sites:1,foremanRate:65}},
+  sess:null,seq:[],pos:0,cur:null,form:{nick:'',role:'',exp:''},resume:null,
+  detail:null,filter:'all',csv:null,confirmDel:null,code:null,saved:null,importMsg:null,timer:null,cfgTimer:null,wantResults:false};
+const now=()=>performance.now();
+const IN_CLAUDE=()=>!!(window.claude&&window.claude.use);
+async function saveFile(name,data,mime){
+  if(S.dl){try{await S.dl.save({filename:name,data});return 'saved'}catch(e){return e&&e.code==='declined'?'declined':'fail'}}
+  if(!IN_CLAUDE()){try{const url=URL.createObjectURL(new Blob([data],{type:mime||'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);return 'saved'}catch(e){return 'fail'}}
+  return 'fail';
+}
+const canSaveFile=()=>!!S.dl||!IN_CLAUDE();
+
+/* ---------- tallennus ---------- */
+const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const lsDel=k=>{try{localStorage.removeItem(k)}catch(e){}};
+function localRuns(){return Object.values(lsGet(LS_RUNS,{})||{})}
+function saveLocalRun(s){const m=lsGet(LS_RUNS,{})||{};m[s.id]=s;lsSet(LS_RUNS,m)}
+function delLocalRun(id){const m=lsGet(LS_RUNS,{})||{};delete m[id];lsSet(LS_RUNS,m)}
+function saveCurrent(){if(S.sess)lsSet(LS_CUR,{sess:S.sess,pos:S.pos})}
+let chain=Promise.resolve();
+function persist(){
+  saveCurrent();
+  if(S.owner&&S.db&&S.sess){const s=JSON.parse(JSON.stringify(S.sess));chain=chain.then(()=>S.db.doc('runs3/'+s.id).set(s)).catch(()=>{})}
+}
+async function saveRun(s){
+  if(S.owner&&S.db){await S.db.doc('runs3/'+s.id).set(s)}
+  else{saveLocalRun(s);S.runs=localRuns()}
+}
+
+/* ---------- apufunktiot ---------- */
+const median=a=>{a=a.filter(x=>x!=null&&!isNaN(x)).sort((x,y)=>x-y);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2};
+const mean=a=>{a=a.filter(x=>x!=null&&!isNaN(x));return a.length?a.reduce((x,y)=>x+y,0)/a.length:null};
+const pct=a=>{a=a.filter(x=>x!=null);return a.length?a.filter(Boolean).length/a.length:null};
+const fmtT=ms=>{if(ms==null||isNaN(ms))return'–';const s=Math.round(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const fmtN=(x,d=1)=>x==null||isNaN(x)?'–':x.toFixed(d).replace('.',',');
+const fmtP=x=>x==null?'–':Math.round(x*100)+' %';
+const fmtE=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('fi-FI')+' €';
+const round50=x=>Math.round(x/50)*50;
+const fmtDate=t=>{const d=new Date(t);return d.toLocaleDateString('fi-FI')+' '+d.toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit'})};
+const simTime=(sc,ms)=>{const day=sc.when.split(' ')[0];const m=sc.start+Math.floor(ms*SPEED/60000);return day+' '+Math.floor(m/60)+'.'+String(m%60).padStart(2,'0')};
+const fmtMin=m=>Math.floor(m/60)+'.'+String(m%60).padStart(2,'0');
+function toast(t){let el=document.getElementById('toast');if(!el)return;el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>{el.hidden=true},2600)}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function groupOf(s){return s.role==='Opiskelija'?'student':'pro'}
+function costOf(items,R){R=R||S.cfg.rates;return (items||[]).reduce((t,i)=>t+(i.k==='eur'?i.q:i.q*(+R[i.k]||0)),0)}
+function bestCost(sc,R){return Math.min(...sc.opts.map(o=>costOf(o.items,R)))}
+
+/* ---------- testikulku ---------- */
+function buildSeq(sess){
+  const seq=[{k:'sc',...PRACTICE[0],practice:true,n:1},{k:'aiintro'},{k:'sc',...PRACTICE[1],practice:true,n:2},{k:'ready'}];
+  sess.order.forEach((x,i)=>seq.push({k:'sc',sid:x.sid,cond:x.cond,practice:false,n:i+1}));
+  seq.push({k:'survey'},{k:'end'});return seq;
+}
+function newSession(){
+  const ver=S.forceVer||(Math.random()<0.5?'A':'B');
+  return {id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),v:3,ver,nick:S.form.nick.trim(),role:S.form.role,exp:S.form.exp,
+    startedAt:Date.now(),status:'kesken',order:MEASURED.map(sid=>({sid,cond:AI_VERSIONS[ver].includes(sid)?'ai':'ilman'})),results:[],survey:null,src:'selain'};
+}
+function stopTimer(){if(S.timer){clearInterval(S.timer);S.timer=null}}
+function go(){
+  stopTimer();const it=S.seq[S.pos];
+  if(it.k==='sc'){
+    S.cur={...it,t0:0,step:1,choice:null,tDec:null,tInf:null,recip:[],msgs:{},drafted:false,conf:null,tabs:[],tab:null,revisions:0,firstChoice:null,tFirst:null,draftFor:null};
+    S.screen='scenario';render();window.scrollTo(0,0);S.cur.t0=now();
+    S.timer=setInterval(tick,1000);
+    return;
+  }
+  S.screen=it.k;render();window.scrollTo(0,0);
+  if(it.k==='end')finishSession();
+}
+function tick(){const c=S.cur;if(!c)return;const el=document.getElementById('simclock');if(!el)return;
+  el.textContent=simTime(SC[c.sid],now()-c.t0);
+}
+function advance(){S.pos++;saveCurrent();go()}
+function start(){
+  const err=document.getElementById('f-err');
+  if(!S.form.role||S.form.exp===''){err.textContent='Valitse rooli ja kirjoita työkokemus vuosina.';err.hidden=false;return}
+  S.sess=newSession();S.seq=buildSeq(S.sess);S.pos=0;S.code=null;S.saved=null;persist();go();
+}
+function resume(){const r=S.resume;S.sess=r.sess;S.seq=buildSeq(r.sess);S.pos=r.pos;S.resume=null;S.code=null;S.saved=null;go()}
+function finishScenario(){
+  const c=S.cur;stopTimer();
+  S.sess.results.push({sid:c.sid,cond:c.cond,practice:c.practice,n:c.n,tDec:Math.round(c.tDec),tInf:Math.round(c.tInf),tSent:Math.round(c.tDec+c.tInf),
+    choice:c.choice,firstChoice:c.firstChoice||c.choice,tFirst:Math.round(c.tFirst||c.tDec),revisions:c.revisions,recip:RECIP.map(x=>x.id).filter(id=>c.recip.includes(id)),msgs:Object.fromEntries(c.recip.map(k=>[k,(c.msgs[k]||'').trim()])),drafted:c.drafted,conf:c.conf,tabs:c.tabs,ts:Date.now()});
+  persist();advance();
+}
+function googleForm(){try{const l=(CONFIG.googleFormLink||'').trim();if(!l)return null;const u=new URL(l);
+  const f=[...u.searchParams.keys()].find(k=>k.startsWith('entry.'));if(!f||!/\/(viewform|formResponse)$/.test(u.pathname))return null;
+  return {url:u.origin+u.pathname.replace(/\/viewform$/,'/formResponse'),field:f}}catch(e){return null}}
+async function finishSession(){
+  S.sess.status='valmis';S.sess.finishedAt=Date.now();
+  lsDel(LS_CUR);
+  try{S.code=await encodeRun(S.sess)}catch(e){S.code=null}
+  if(S.owner&&S.db){try{await chain;await S.db.doc('runs3/'+S.sess.id).set(JSON.parse(JSON.stringify(S.sess)));S.saved='db'}catch(e){S.saved='koodi'}}
+  else{let st='koodi';saveLocalRun(S.sess);S.runs=localRuns();
+    if(!IN_CLAUDE()){const gf=googleForm();
+      if(gf&&S.code){try{await fetch(gf.url,{method:'POST',mode:'no-cors',body:new URLSearchParams({[gf.field]:S.code})});st='lomake'}catch(e){}}
+      else if(CONFIG.submitUrl){try{const res=await fetch(CONFIG.submitUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'cnsim3',run:S.sess})});if(res.ok)st='lahetetty'}catch(e){}}}
+    S.saved=st}
+  if(S.screen==='end')render();
+}
+
+/* ---------- tuloskoodi ---------- */
+const b64u=bytes=>{let s='';for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const unb64u=str=>{str=str.replace(/-/g,'+').replace(/_/g,'/');while(str.length%4)str+='=';const b=atob(str);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+async function encodeRun(s){
+  const raw=new TextEncoder().encode(JSON.stringify(s));let p;
+  if(typeof CompressionStream!=='undefined'){const buf=await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();p='z'+b64u(new Uint8Array(buf))}
+  else p='j'+b64u(raw);
+  const body=p.match(/.{1,64}/g).join('\n');
+  return 'CNSIM3.\n'+body+'\n.END';
+}
+async function decodeCode(p){
+  const kind=p[0],bytes=unb64u(p.slice(1));
+  if(kind==='z'){const txt=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();return JSON.parse(txt)}
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+async function importText(txt){
+  const re=/CNSIM3\.([\s\S]*?)\.END/g;let m,ok=0,dup=0,bad=0,found=0;const names=[];
+  while((m=re.exec(txt))){found++;
+    try{const p=m[1].replace(/[\s>]/g,'');const s=await decodeCode(p);
+      if(!s||!s.id||!Array.isArray(s.results)||s.v!==3)throw new Error('rakenne');
+      if(S.runs.some(x=>x.id===s.id)){dup++;continue}
+      s.src='koodi';s.importedAt=Date.now();await saveRun(s);ok++;names.push(s.nick||s.role||s.id);
+    }catch(e){bad++}}
+  const old=(txt.match(/CNSIM[12]\./g)||[]).length;
+  return {found,ok,dup,bad,names,old};
+}
+
+/* ---------- arviointi ---------- */
+function msgsOf(r){if(r.msgs&&typeof r.msgs==='object')return r.msgs;const o={};(r.recip||[]).forEach(k=>o[k]=r.msg||'');return o}
+function unedShare(r,op){if(!r.drafted||!op.m||typeof op.m!=='object')return null;const m=msgsOf(r);const ks=(r.recip||[]).filter(k=>op.m[k]!=null);if(!ks.length)return null;return ks.filter(k=>(m[k]||'').trim()===op.m[k].trim()).length/ks.length}
+function evalR(sess,r,R){
+  const sc=SC[r.sid];if(!sc)return null;const op=sc.opts.find(x=>x.id===r.choice);if(!op)return null;
+  const rec=r.recip||[];const missing=op.to.filter(x=>!rec.includes(x));
+  const missItems=missing.flatMap(x=>(sc.miss&&sc.miss[x])||[]);
+  let dlMet=null,dlItems=[];
+  if(sc.dl){const ms=(sc.dl.at-sc.start)*60000/SPEED;const sent=rec.includes(sc.dl.rid);dlMet=sent&&r.tSent<=ms;if(sent&&!dlMet&&op.dlItems)dlItems=op.dlItems}
+  const base=costOf(op.items,R),miss=costOf(missItems,R),dlc=costOf(dlItems,R),total=base+miss+dlc,best=bestCost(sc,R);
+  const extraIds=rec.filter(x=>!op.to.includes(x)&&!sc.ok.includes(x));
+  const tabs=r.tabs||[];const before=[...new Set(tabs.filter(t=>t.t<=r.tDec).map(t=>t.tab))];const all=[...new Set(tabs.map(t=>t.tab))];
+  return {...r,sess,sc,op,q:op.q,base,miss,dlc,total,best,excess:total-best,missing,missItems,dlItems,dlMet,
+    req:op.to.length,reached:op.to.length-missing.length,allReached:!missing.length,extra:extraIds.length,extraIds,before,allTabs:all,
+    changed:r.firstChoice!=null&&r.firstChoice!==r.choice,model:all.includes('malli'),docs:all.includes('suunnitelmat'),accepted:r.cond==='ai'?r.choice===sc.ai.rec:null,
+    unedited:unedShare(r,op),flawed:!!sc.ai.flawed,tFirst:r.tFirst!=null?r.tFirst:r.tDec,tTot:(r.tDec||0)+(r.tInf||0)};
+}
+const measuredOf=(s,R)=>(s.results||[]).filter(r=>!r.practice).map(r=>evalR(s,r,R)).filter(Boolean);
+function filteredRuns(){return S.runs.filter(s=>S.filter==='all'||groupOf(s)===S.filter)}
+
+/* ---------- yläpalkki ---------- */
+function topbar(){
+  let right='';const it=S.seq[S.pos];
+  if(['scenario','aiintro','ready','survey'].includes(S.screen)&&S.sess){
+    const done=(S.sess.results||[]).filter(r=>!r.practice).length;
+    let lab='';if(S.screen==='scenario')lab=S.cur.practice?`Harjoitus ${S.cur.n}/2`:`Häiriö ${S.cur.n}/6`;else if(S.screen==='survey')lab='Loppukysely';else lab='Välivaihe';
+    const curN=S.screen==='scenario'&&!S.cur.practice?S.cur.n:0;
+    right=`<div class="prog"><span class="label">${lab}</span><span class="dots" aria-hidden="true">${[1,2,3,4,5,6].map(i=>`<i class="${i<=done?'on':''} ${i===curN?'cur':''}"></i>`).join('')}</span>
+      </div>`;
+  }else if((S.owner&&['welcome','results','end'].includes(S.screen))||S.screen==='results'){
+    right=`<nav class="nav" aria-label="Näkymät"><button data-act="nav" data-s="welcome" aria-current="${S.screen==='welcome'}">Testi</button><button data-act="nav" data-s="results" aria-current="${S.screen==='results'}">Tulokset (${S.runs.length})</button></nav>`;
+  }
+  return `<header class="top"><div class="wrap"><div class="brand"><span class="mk" aria-hidden="true">${'<i></i>'.repeat(9)}</span>Construction Navigator</div>${right}</div></header>`;
+}
+
+/* ---------- testaajan näkymät ---------- */
+function vWelcome(){
+  const f=S.form;const r=S.resume;
+  const done=r?(r.sess.results||[]).filter(x=>!x.practice).length:0;
+  return `<main class="wrap center stack fade">
+  <section class="panel pad stack">
+    <span class="label">${esc(CONFIG.project)}</span>
+    <h1>Runkovaiheen häiriötilanteet</h1>
+    <div class="script">
+      <p>Ratkaiset simulaatiossa toimistorakennuksen runkovaiheen häiriöitä, jotka liittyvät ontelolaattojen toimituksiin ja asennukseen. Toimit työnjohtajana tai projekti-insinöörinä.</p>
+      <p>Tutkimme, nopeuttaako ja parantaako tekoälyn tuottama tilannekuva ja ehdotus päätöksentekoa. Osassa tilanteista käytössäsi on tekoälyavustaja, osassa ei.</p>
+    </div>
+    <ul class="welcome-list">
+      <li><b>Kesto noin 25–30 minuuttia.</b> Voit keskeyttää ja jatkaa myöhemmin samalla selaimella.</li>
+      <li>Ensin kaksi harjoitusta, sitten kuusi häiriötä ja lyhyt loppukysely.</li>
+      <li>Jokaisessa häiriössä päätät ensin, mitä tehdään, ja sitten kirjoitat lyhyen viestin jokaiselle, jota päätös koskee.</li>
+      <li>Vastaukset käsitellään nimettöminä. Simulaattori mittaa ajan automaattisesti.</li>
+    </ul>
+  </section>
+  ${r?`<section class="panel pad stack resume"><h2>Jatka keskeneräistä testiä</h2><p>Olet ratkaissut ${done}/6 häiriötä. Voit jatkaa siitä, mihin jäit.</p>
+    <div class="row"><button class="btn" data-act="resume">Jatka testiä</button><button class="btn ghost" data-act="discard">Aloita alusta</button></div></section>`:''}
+  <section class="panel pad stack">
+    <h2>Taustatiedot</h2>
+    <div class="formgrid">
+      <div class="field full"><label for="f-role">Roolisi</label><select id="f-role" data-f="role"><option value="">Valitse rooli</option>${ROLES.map(x=>`<option ${f.role===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div class="field"><label for="f-exp">Työkokemus rakennusalalta (vuotta)</label><input id="f-exp" data-f="exp" type="number" min="0" max="60" inputmode="numeric" value="${esc(f.exp)}"></div>
+      <div class="field"><label for="f-nick">Nimimerkki <span class="muted">(vapaaehtoinen)</span></label><input id="f-nick" data-f="nick" maxlength="40" autocomplete="off" value="${esc(f.nick)}"></div>
+    </div>
+    <p class="err" id="f-err" hidden></p>
+    <div><button class="btn" data-act="start">Aloita</button></div>
+  </section></main>`;
+}
+function vAiIntro(){
+  return `<main class="wrap center panel pad stack fade">
+    <span class="label">Harjoitus 1/2 valmis</span><h1>Seuraavaksi tekoälyavustajan kanssa</h1>
+    <div class="script"><p>Toisessa harjoituksessa näet tilannetietojen vieressä <b>Navigator-avustajan</b>. Se näyttää tilannekuvan, vaikutusketjun ja muutaman vaihtoehdon, joille se on arvioinut aikataulu- ja kustannusvaikutuksen, sekä suosituksensa.</p>
+    <p>Kun olet tehnyt päätöksen, avustaja valitsee vastaanottajat ja kirjoittaa jokaiselle oman viestiluonnoksen. Voit muokata viestejä sekä lisätä tai poistaa vastaanottajia.</p>
+    <p>Päätös on aina sinun. Avustaja voi olla väärässä, ja voit tarkistaa sen tiedot välilehdiltä.</p></div>
+    <div><button class="btn" data-act="next">Aloita harjoitus 2</button></div></main>`;
+}
+function vReady(){
+  return `<main class="wrap center panel pad stack fade">
+    <span class="label">Harjoitukset valmiit</span><h1>Varsinaiset häiriöt alkavat</h1>
+    <div class="script"><p>Seuraavaksi ratkaiset kuusi häiriötä. Kolmessa niistä tekoälyavustaja on käytössä, kolmessa ei. Jokaisen häiriön yläreunassa näkyy, onko avustaja käytössä.</p>
+    <p>Toimi niin kuin toimisit oikealla työmaalla. Aika mitataan, mutta oikea ratkaisu on tärkeämpi kuin nopeus. Voit vielä muuttaa päätöstäsi, kun kirjoitat viestejä.</p><p>Häiriöilmoituksen kello käy nopeutettuna: yksi minuutti vastaa noin kymmentä minuuttia työmaalla. Osa tilanteista on aikakriittisiä.</p></div>
+    <div><button class="btn" data-act="next">Aloita</button></div></main>`;
+}
+
+/* --- häiriö --- */
+function tabBody(sc,t){
+  if(!t)return `<div class="srcguide"><p class="note">Kaikki päätökseen tarvittava tieto löytyy näistä lähteistä. Avaa ne, joita tarvitset.</p>${TABS.map(([k,n])=>`<button class="srcrow" data-act="tab" data-t="${k}"><b>${n}</b><span>${TABDESC[k]}</span></button>`).join('')}</div>`;
+  const chip=(st,txt)=>st?`<span class="st ${st}">${esc(txt||STL[st])}</span>`:esc(txt||'Suunniteltu');
+  if(t==='aikataulu')return `<div class="tscroll"><table><thead><tr><th>Aika</th><th>Työvaihe</th><th>Tekijä</th><th>Tila</th></tr></thead><tbody>${sc.sched.map(r=>`<tr><td class="mono">${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${chip(r[3])}</td></tr>`).join('')}</tbody></table></div>`;
+  if(t==='toimitukset')return `<div class="tscroll"><table><thead><tr><th>Kuorma</th><th>Sisältö</th><th>Suunniteltu</th><th>Tilanne</th></tr></thead><tbody>${sc.deliv.map(r=>`<tr><td class="mono">${esc(r[0])}</td><td>${esc(r[1])}</td><td class="mono">${esc(r[2])}</td><td>${chip(r[4],r[3])}</td></tr>`).join('')}</tbody></table></div>`;
+  if(t==='resurssit')return `<div class="tscroll"><table><thead><tr><th>Resurssi</th><th>Tilanne</th></tr></thead><tbody>${sc.res.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${r[2]?chip(r[2],r[1]):esc(r[1])}</td></tr>`).join('')}</tbody></table></div>
+    <h3 style="margin-top:16px">Kustannusarviot</h3><div class="tscroll"><table><tbody>${Object.keys(DEFAULT_RATES).map(k=>`<tr><td>${RATE_LABELS[k]}</td><td class="num mono">${DEFAULT_RATES[k].toLocaleString('fi-FI')} ${RATE_UNITS[k]}</td></tr>`).join('')}</tbody></table></div>`;
+  if(t==='suunnitelmat')return [...DOCS_COMMON,...(sc.docs||[])].map(d=>`<div class="doc"><h3>${esc(d[0])}</h3><p>${esc(d[1])}</p></div>`).join('');
+  if(t==='viestit')return sc.msgs.map(m=>`<div class="msg"><span class="t">${esc(m[0])}</span><span class="w">${esc(m[1])}</span><span>${esc(m[2])}</span></div>`).join('');
+  if(t==='malli'){
+    const cells=sc.model.map((r,i)=>{const fl=5-i;const cur=fl===sc.floor;
+      return `<span class="fl ${cur?'cur':''}">${fl}. krs</span>`+[...r].map((ch,j)=>{const k=ch==='-'?'n':ch;return `<span class="c ${k} ${cur?'cur':''}" title="${fl}. krs lohko ${'ABC'[j]}: ${STN[ch]}">${STW[ch]}</span>`}).join('')}).join('');
+    return `<div class="label" style="margin-bottom:8px">Runko, lohkot A–C · ${sc.floor}. kerros korostettu</div>
+      <div class="model"><span></span><span class="hd">A</span><span class="hd">B</span><span class="hd">C</span>${cells}</div>
+      <p class="note" style="margin-top:10px">Valmis = laatat asennettu ja juotettu · Asennettu = laatat paikoillaan, juotokset kesken · Odottaa laattoja = seinät valmiit · Tyhjä = ei aloitettu</p>
+      <ul class="notes">${sc.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`;
+  }
+  return '';
+}
+function tabsHtml(){const c=S.cur;const seen=new Set(c.tabs.map(x=>x.tab));
+  return TABS.map(([k,n])=>`<button role="tab" data-act="tab" data-t="${k}" aria-selected="${c.tab===k}" class="${seen.has(k)?'seen':''}">${n}</button>`).join('')}
+function aiHtml(){
+  const c=S.cur,sc=SC[c.sid],ai=sc.ai;
+  const head=`<div class="hd"><i></i>Navigator-avustaja</div>`;
+  const chain=`<h4>Vaikutusketju</h4><div class="chain">${ai.chain.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`;
+  if(c.step===1){
+    const recO=sc.opts.find(x=>x.id===ai.rec);
+    const others=ai.show.filter(id=>id!==ai.rec).map(id=>{const op=sc.opts.find(x=>x.id===id);
+      return `<div class="aiother"><span>${esc(op.t)}</span><span class="cost">noin ${fmtE(round50(costOf(op.items,DEFAULT_RATES)))}</span><span class="note">${esc(op.c)}</span></div>`}).join('');
+    return `<div class="ai">${head}<p class="aisit">${esc(ai.sit)}</p>
+      <div class="aiopt rec"><span class="tag">Suositus</span><b>${esc(recO.t)}</b><span class="meta">Kustannusvaikutus noin ${fmtE(round50(costOf(recO.items,DEFAULT_RATES)))}</span><span>${esc(ai.why)}</span></div>
+      ${others?`<h4>Muut vaihtoehdot</h4><div class="stack" style="gap:6px">${others}</div>`:''}
+      ${chain}
+      <h4>Perustuu tietoihin</h4><div class="srcs">${ai.src.map(t=>`<button data-act="src" data-t="${t}">${TABNAME[t]}</button>`).join('')}</div></div>`;
+  }
+  return `<div class="ai">${head}${chain}<h4>Tiedottaminen</h4><p>Avustaja valitsi vastaanottajat ja kirjoitti jokaiselle viestiluonnoksen päätöksesi pohjalta. Tarkista ja muokkaa tarvittaessa.</p></div>`;
+}
+function msgAreaHtml(){
+  const c=S.cur;
+  if(!c.recip.length)return `<p class="note">Valitse vastaanottajat. Jokaiselle kirjoitetaan oma viesti.</p>`;
+  return `<div class="msgs">${RECIP.filter(r=>c.recip.includes(r.id)).map(r=>`<div class="field"><label for="m-${r.id}"><b>Viesti: ${esc(r.n)}</b></label><textarea id="m-${r.id}" data-r="${r.id}" rows="2" placeholder="Mitä muuttuu ja mitä vastaanottajan pitää tehdä?">${esc(c.msgs[r.id]||'')}</textarea></div>`).join('')}</div>`;
+}
+function decideHtml(){
+  const c=S.cur,sc=SC[c.sid];
+  const steps=['Päätös','Tiedotus','Varmuus'].map((n,i)=>`<span class="${c.step===i+1?'on':c.step>i+1?'done':''}">${i+1} ${n}</span>`).join('');
+  const chosen=c.choice?sc.opts.find(o=>o.id===c.choice):null;
+  let body='';
+  const hint=['',c.cond==='ai'?'Valitse, mitä teet. Voit noudattaa avustajan suositusta tai valita toisin.':'Tutki tiedot vasemmalta ja valitse, mitä teet.',
+    c.cond==='ai'?'Avustaja valitsi vastaanottajat ja kirjoitti luonnokset. Tarkista, muokkaa tarvittaessa ja lähetä.':'Valitse, kenelle ilmoitat, ja kirjoita jokaiselle lyhyt viesti.','Viimeinen vaihe: kuinka varma olet päätöksestäsi?'][c.step];
+  body+=`<p class="stephint">${hint}</p>`;
+  if(c.step===1){
+    body+=`<h3>Mitä teet seuraavaksi?</h3><div class="opts">${sc.opts.map(o=>`<label class="opt"><input type="radio" name="opt" value="${o.id}" ${c.choice===o.id?'checked':''}><span>${esc(o.t)}</span></label>`).join('')}</div>
+      <div><button class="btn" data-act="decide" ${c.choice?'':'disabled'}>Vahvista päätös</button></div>`;
+  }else if(c.step===2){
+    body+=`<div class="chosen-sum"><span class="label">Päätöksesi</span><br>${esc(chosen.t)}<br><button class="linkbtn" data-act="backdec">Muuta päätöstä</button></div>
+      <h3>Kenelle ilmoitat?</h3>
+      ${[...new Set(RECIP.map(r=>r.g||'Muut'))].map(g=>`<div class="rgroup"><span class="label">${esc(g)}</span><div class="rcp">${RECIP.filter(r=>(r.g||'Muut')===g).map(r=>`<label><input type="checkbox" name="rcp" value="${r.id}" ${c.recip.includes(r.id)?'checked':''}><span>${esc(r.n)}<small>${esc(r.p)}</small></span></label>`).join('')}</div></div>`).join('')}
+      <div id="msgarea">${msgAreaHtml()}</div>
+      <p class="err" id="send-err" hidden></p>
+      <div><button class="btn" data-act="send">Lähetä viestit</button></div>`;
+  }else{
+    body+=`<p class="chosen-sum"><span class="label">Päätöksesi</span><br>${esc(chosen.t)}</p>
+      <p class="note">Viestit lähetetty: ${c.recip.map(r=>esc(RNAME[r])).join(', ')}</p>
+      <h3>Kuinka varma olet päätöksestäsi?</h3>
+      <div><div class="conf">${[1,2,3,4,5].map(v=>`<button data-act="conf" data-v="${v}" aria-pressed="${c.conf===v}">${v}</button>`).join('')}</div>
+      <div class="scale"><span>1 = en lainkaan varma</span><span>5 = täysin varma</span></div></div>
+      <div><button class="btn" data-act="finish" ${c.conf?'':'disabled'}>Seuraava</button></div>`;
+  }
+  return `<div class="panel decide"><div class="steps">${steps}</div><div class="body">${body}</div></div>`;
+}
+function vScenario(){
+  const c=S.cur,sc=SC[c.sid];
+  const cond=`<div class="condbar ${c.cond==='ai'?'ai':''}"><span>${c.cond==='ai'?'Tekoälyavustaja käytössä':'Ilman tekoälyä'}</span>${c.practice?'<span class="sub">Harjoitus, ei lasketa tuloksiin</span>':''}</div>`;
+  const guide=c.practice?`<div class="guide"><b>Näin edetään:</b> ${c.cond==='ai'?'1) Lue ilmoitus · 2) Katso avustajan suositus ja tarkista tarvittaessa tiedot · 3) Valitse oikealta, mitä teet · 4) Tarkista avustajan viestiluonnokset ja lähetä · 5) Arvioi varmuutesi':'1) Lue ilmoitus · 2) Tutki tiedot vasemmalta · 3) Valitse oikealta, mitä teet · 4) Valitse vastaanottajat ja kirjoita jokaiselle viesti · 5) Arvioi varmuutesi'}</div>`:'';
+  return `<main class="wrap fade">
+    <div class="alertcard">${cond}<div class="alert" role="alert"><span class="clock" id="simclock">${esc(sc.when)}</span><span class="from">Häiriöilmoitus · ${esc(sc.alert[0])}</span><span class="txt">${esc(sc.alert[1])}</span></div></div>${guide}
+    <div class="scgrid">
+      <div class="stack" style="min-width:0">${c.cond==='ai'?`<section id="aipanel" aria-label="Navigator-avustaja">${aiHtml()}</section>`:''}
+      <section class="panel" aria-label="Tietolähteet"><div class="tabs" role="tablist" id="tabs">${tabsHtml()}</div><div class="tabbody" id="tabbody" role="tabpanel">${tabBody(sc,c.tab)}</div></section></div>
+      <section class="stack decide-col" id="decide">${decideHtml()}</section>
+    </div></main>`;
+}
+function scaleQ(id,q,lo,hi){const v=S.sess.survey?.[id];
+  return `<div class="field"><span><b>${q}</b></span><div class="conf">${[1,2,3,4,5].map(n=>`<button data-act="sv" data-k="${id}" data-v="${n}" aria-pressed="${v===n}">${n}</button>`).join('')}</div><div class="scale"><span>1 = ${lo}</span><span>5 = ${hi}</span></div></div>`}
+function vSurvey(){
+  const sv=S.sess.survey||{};
+  return `<main class="wrap center panel pad stack fade">
+    <span class="label">Lopuksi</span><h1>Loppukysely</h1>
+    ${scaleQ('use','Kuinka hyödyllisiä avustajan ehdotukset olivat?','ei lainkaan','erittäin hyödyllisiä')}
+    ${scaleQ('trust','Kuinka paljon luotit avustajan ehdotuksiin?','en lainkaan','täysin')}
+    ${scaleQ('ease','Kuinka helppoa avustajan käyttö oli?','erittäin vaikeaa','erittäin helppoa')}
+    ${scaleQ('real','Kuinka realistisilta häiriötilanteet tuntuivat?','ei lainkaan','täysin realistisilta')}
+    <div class="field"><label for="sv-com"><b>Kommentit</b> <span class="muted">(vapaaehtoinen)</span></label><textarea id="sv-com" data-sv="comment" rows="4" placeholder="Mikä oli epärealistista, mitä puuttui tai mitä tällaisen työkalun pitäisi osata?">${esc(sv.comment||'')}</textarea></div>
+    <p class="err" id="sv-err" hidden></p>
+    <div><button class="btn" data-act="survey-done">Valmis</button></div></main>`;
+}
+function vEnd(){
+  const s=S.sess;const rows=measuredOf(s,DEFAULT_RATES);
+  const totEx=rows.reduce((t,r)=>t+r.excess,0);
+  const ql=q=>q===2?'<span class="st done">Paras</span>':q===1?'<span class="st risk">Hyväksyttävä</span>':'<span class="st late">Huono</span>';
+  let send='';
+  const to=CONFIG.contactEmail?`osoitteeseen <b class="mono" style="user-select:all">${esc(CONFIG.contactEmail)}</b>${CONFIG.contactName?' ('+esc(CONFIG.contactName)+')':''}`:'vastaukseksi viestiin, jossa sait testin linkin';
+  if(!S.saved)send=`<section class="panel pad stack"><p class="note">Tallennetaan tuloksia…</p></section>`;
+  else if(S.saved==='lomake')send=`<section class="panel pad stack"><div class="status ok"><i></i>Tulokset on lähetetty. Sinun ei tarvitse tehdä muuta.</div>
+    <details class="sd"><summary>Lähetys ei onnistunut? Kopioi tulokset tästä</summary><p class="note" style="margin:10px 0">Jos saat meiltä viestin, että tulokset eivät tulleet perille, kopioi tämä teksti ja lähetä se meille sähköpostilla.</p>
+    <textarea class="codebox" id="codebox" readonly>${esc(S.code||'')}</textarea><div class="row" style="margin-top:8px"><button class="btn ghost" data-act="copycode">Kopioi tulokset</button></div></details></section>`;
+  else if(S.saved==='db')send=`<section class="panel pad stack"><div class="status ok"><i></i>Tulokset on tallennettu tulosnäkymään.</div></section>`;
+  else if(S.saved==='lahetetty')send=`<section class="panel pad stack"><div class="status ok"><i></i>Tulokset on lähetetty. Kiitos!</div></section>`;
+  else send=`<section class="panel pad stack sendbox"><h2>Lähetä tulokset meille</h2>
+    <p>Tulokset ovat vielä vain tällä selaimella. Lähetä ne meille näin:</p>
+    <ol class="welcome-list"><li>Paina <b>Kopioi tulokset</b>.</li><li>Liitä teksti sähköpostiin ja lähetä se ${to}.</li></ol>
+    ${S.code?`<textarea class="codebox" id="codebox" readonly>${esc(S.code)}</textarea>
+    <div class="row"><button class="btn" data-act="copycode">Kopioi tulokset</button>${canSaveFile()?'<button class="btn ghost" data-act="savecode">Tallenna tiedostona</button>':''}</div>
+    <p class="note">Tekstissä ovat vastauksesi, ajat ja kirjoittamasi viestit. Siinä ei ole nimeäsi, ellet kirjoittanut nimimerkkiä.</p>`:`<p class="note">Muodostetaan tuloksia…</p>`}</section>`;
+  const list=rows.map(r=>`<tr><td class="mono">${r.n}</td><td>${esc(r.sc.title)}</td><td>${r.cond==='ai'?'<span class="cond-ai">Tekoäly</span>':'Ilman'}</td><td class="num">${fmtT(r.tDec)}</td><td class="num">${fmtT(r.tTot)}</td><td>${ql(r.q)}</td><td class="num">${r.reached}/${r.req}</td><td class="num">${fmtE(round50(r.excess))}</td></tr>`).join('');
+  const best=rows.map(r=>{const b=r.sc.opts.find(o=>o.q===2);return `<li><b>${esc(r.sc.title)}:</b> ${esc(b.t)}</li>`}).join('');
+  return `<main class="wrap center stack fade">
+    <section class="panel pad stack"><span class="label">Testi valmis</span><h1>Kiitos osallistumisesta!</h1></section>
+    ${send}
+    <section class="panel pad stack"><h2>Miten päätöksesi vaikuttivat</h2>
+      <p>Päätöstesi arvioitu ylimääräinen kustannus verrattuna parhaisiin ratkaisuihin oli yhteensä <b>${fmtE(round50(totEx))}</b>. Siihen sisältyvät valitun ratkaisun kulut sekä seuraukset siitä, jos joku tarvittava jäi ilman viestiä.</p>
+      ${(()=>{const a=rows.filter(r=>r.cond==='ilman'),b=rows.filter(r=>r.cond==='ai');return a.length&&b.length?`<div class="cards"><div class="panel kpi"><span class="label">Ilman tekoälyä</span><div class="v num">${fmtT(median(a.map(r=>r.tTot)))}</div><span class="note">mediaani häiriötä kohden, päätös ${fmtT(median(a.map(r=>r.tDec)))}</span></div><div class="panel kpi"><span class="label">Tekoälyn kanssa</span><div class="v num">${fmtT(median(b.map(r=>r.tTot)))}</div><span class="note">mediaani häiriötä kohden, päätös ${fmtT(median(b.map(r=>r.tDec)))}</span></div></div>`:''})()}
+      <p class="note">Päätös = aika häiriön avaamisesta päätökseen. Yht. = päätös ja viestien lähetys. Tavoit. = kuinka moni tarvittavista sai viestin. Ylim. € = ylimääräinen kustannus.</p>
+      <div class="tscroll"><table class="cmp"><thead><tr><th>#</th><th>Häiriö</th><th>Tapa</th><th class="num">Päätös</th><th class="num">Yht.</th><th>Ratkaisu</th><th class="num">Tavoit.</th><th class="num">Ylim. €</th></tr></thead><tbody>${list}</tbody></table></div>
+      <details class="sd"><summary>Näytä parhaat ratkaisut</summary><ul class="notes">${best}</ul></details>
+      <p class="note">Kustannukset ovat suuntaa antavia arvioita.</p></section>
+    ${S.owner?`<div class="row"><button class="btn" data-act="nav" data-s="welcome">Uusi testi</button><button class="btn ghost" data-act="nav" data-s="results">Tulokset</button></div>`:''}
+  </main>`;
+}
+
+/* ---------- järjestäjän tulosnäkymä ---------- */
+const METRICS=[
+  ['Päätösaika, mediaani',a=>median(a.map(r=>r.tDec)),fmtT,-1,'t'],
+  ['  ensimmäiseen päätökseen, mediaani',a=>median(a.map(r=>r.tFirst)),fmtT,-1,'t'],
+  ['Tiedotusaika, mediaani',a=>median(a.map(r=>r.tInf)),fmtT,-1,'t'],
+  ['Kokonaisaika, mediaani',a=>median(a.map(r=>r.tTot)),fmtT,-1,'t'],
+  ['Päätöksen laatu, ka (0–2)',a=>mean(a.map(r=>r.q)),x=>fmtN(x,2),1,'n'],
+  ['Paras ratkaisu valittu',a=>pct(a.map(r=>r.q===2)),fmtP,1,'p'],
+  ['Kaikki tarvittavat tavoitettu',a=>pct(a.map(r=>r.allReached)),fmtP,1,'p'],
+  ['Turhat vastaanottajat, ka',a=>mean(a.map(r=>r.extra)),x=>fmtN(x,1),-1,'n'],
+  ['Ylimääräinen kustannus, ka',a=>mean(a.map(r=>r.excess)),fmtE,-1,'e'],
+  ['  josta tiedotuspuutteista, ka',a=>mean(a.map(r=>r.miss+r.dlc)),fmtE,-1,'e'],
+  ['Päätöstä muutettu tiedotusvaiheessa',a=>pct(a.map(r=>r.changed)),fmtP,0,'p'],
+  ['Varmuus, ka (1–5)',a=>mean(a.map(r=>r.conf)),x=>fmtN(x,1),0,'n'],
+  ['Lähteitä avattu ennen päätöstä, ka',a=>mean(a.map(r=>r.before.length)),x=>fmtN(x,1),0,'n'],
+  ['Suunnitelmat ja sopimukset avattu',a=>pct(a.map(r=>r.docs)),fmtP,0,'p'],
+  ['Tietomalli avattu',a=>pct(a.map(r=>r.model)),fmtP,0,'p']
+];
+function diffCell(a,b,dir,kind){
+  if(a==null||b==null)return '<td class="num">–</td>';
+  const d=b-a;const sg=d<0?'−':'+';let txt;
+  if(kind==='t')txt=sg+fmtT(Math.abs(d));else if(kind==='p')txt=sg+Math.round(Math.abs(d)*100)+' %-yks.';else if(kind==='e')txt=sg+fmtE(Math.abs(d));else txt=sg+fmtN(Math.abs(d),Math.abs(d)<1?2:1);
+  const cls=dir&&Math.abs(d)>1e-9?((d*dir>0)?'good':'bad'):'';return `<td class="num diff ${cls}">${txt}</td>`;
+}
+function cmpTable(A,B){
+  return `<div class="tscroll"><table class="cmp"><thead><tr><th>Mittari</th><th class="num">Ilman (n=${A.length})</th><th class="num">Tekoäly (n=${B.length})</th><th class="num">Ero</th></tr></thead><tbody>
+    ${METRICS.map(([n,f,fmt,dir,kind])=>{const a=f(A),b=f(B);return `<tr><td>${n.startsWith('  ')?'<span class="muted" style="padding-left:14px">'+esc(n.trim())+'</span>':esc(n)}</td><td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td>${diffCell(a,b,dir,kind)}</tr>`}).join('')}
+  </tbody></table></div>`;
+}
+function csvBoxHtml(){
+  return S.csv?`<section class="panel pad stack"><h3>${esc(S.csvTitle||'CSV-tiedoston sisältö')}</h3><p class="note">Tiedostoksi tallennus ei ole käytettävissä tässä näkymässä. Kopioi sisältö ja tallenna se tekstitiedostoksi.</p>
+    <textarea class="csvbox" id="csvbox" readonly>${esc(S.csv)}</textarea><div class="row"><button class="btn ghost" data-act="copycsv">Kopioi</button><button class="btn ghost" data-act="closecsv">Sulje</button></div></section>`:'';
+}
+function importHtml(){
+  const m=S.importMsg;
+  return `<section class="panel pad stack" id="import"><div><h2>Tuo tulokset</h2><p class="note">Liitä yhden tai useamman sähköpostin teksti. Simulaattori poimii tuloskoodit automaattisesti. Voit myös valita testaajien lähettämät tiedostot.</p></div>
+    <textarea id="imp-text" rows="4" class="codebox" placeholder="Liitä sähköpostien teksti tähän"></textarea>
+    <div class="row"><button class="btn" data-act="import">Tuo tulokset</button><label class="btn ghost" for="imp-file">Valitse tiedostoja</label><input id="imp-file" type="file" multiple accept=".txt,.json,.eml,text/plain" hidden></div>
+    ${m?`<p class="${m.err?'err':'status ok'}">${m.err?'':'<i></i>'}${esc(m.text)}</p>`:''}
+    ${!(S.owner&&S.db)?'<p class="note">Tulokset tallentuvat tämän selaimen muistiin. Vie varmuuskopio säännöllisesti, ja käsittele tuloksia aina samalla selaimella.</p>':''}</section>`;
+}
+function savingsHtml(A,B){
+  const c=S.cfg.calc;const R=S.cfg.rates;
+  const exA=mean(A.map(r=>r.excess)),exB=mean(B.map(r=>r.excess));
+  const tA=median(A.map(r=>r.tTot)),tB=median(B.map(r=>r.tTot));
+  const perYear=(+c.perMonth||0)*12*(+c.sites||0);
+  const dEx=exA!=null&&exB!=null?exA-exB:null;const dT=tA!=null&&tB!=null?(tA-tB)/3600000:null;
+  const sEx=dEx!=null?dEx*perYear:null;const sT=dT!=null?dT*(+c.foremanRate||0)*perYear:null;
+  const tot=sEx!=null||sT!=null?(sEx||0)+(sT||0):null;
+  const inp=(grp,k,label,unit,step)=>`<div class="field"><label for="cfg-${grp}-${k}">${label}</label><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="cfg-${grp}-${k}" type="number" min="0" step="${step||1}" data-cfg="${grp}.${k}" value="${esc(S.cfg[grp][k])}"><span class="muted" style="white-space:nowrap">${unit}</span></div></div>`;
+  return `<section class="panel pad stack"><div><h2>Kustannusoletukset ja säästölaskelma</h2><p class="note">Muuta arvoja, kun haastatteluista saadaan oikeat luvut. Kaikki tulokset lasketaan uudelleen. Testaajat näkevät simulaatiossa oletushinnat.</p></div>
+    <h3>Yksikköhinnat</h3><div class="rates">${Object.keys(DEFAULT_RATES).map(k=>inp('rates',k,RATE_LABELS[k],RATE_UNITS[k],5)).join('')}</div>
+    <h3>Säästölaskelman oletukset</h3><div class="rates">${inp('calc','perMonth','Runkovaiheen häiriöitä kuukaudessa työmaalla','kpl',1)}${inp('calc','sites','Työmaiden määrä','kpl',1)}${inp('calc','foremanRate','Työnjohtajan tuntihinta','€/h',5)}</div>
+    <div class="tscroll"><table class="cmp"><tbody>
+      <tr><td>Ylimääräinen kustannus per häiriö, ilman → tekoäly</td><td class="num">${fmtE(exA)} → ${fmtE(exB)}</td></tr>
+      <tr><td>Säästö per häiriö</td><td class="num">${fmtE(dEx)}</td></tr>
+      <tr><td>Työnjohtajan aikasäästö per häiriö (mediaani)</td><td class="num">${dT==null?'–':fmtN(dT*60,1)+' min'}</td></tr>
+      <tr><td>Häiriöitä vuodessa (${fmtN(+c.perMonth,0)} × 12 kk × ${fmtN(+c.sites,0)} työmaata)</td><td class="num">${fmtN(perYear,0)}</td></tr>
+      <tr><td>Säästö päätösten laadusta vuodessa</td><td class="num">${fmtE(sEx)}</td></tr>
+      <tr><td>Säästö työnjohtajan ajasta vuodessa</td><td class="num">${fmtE(sT)}</td></tr>
+      <tr><td><b>Arvioitu säästö yhteensä vuodessa</b></td><td class="num"><b>${fmtE(tot)}</b></td></tr>
+    </tbody></table></div><p class="note">Laskelma skaalaa testin keskiarvot vuositasolle. Pienellä otoksella se on suuntaa antava, ja oletukset pitää kertoa raportissa.</p></section>`;
+}
+function vResults(){
+  const runs=filteredRuns();const rows=runs.flatMap(s=>measuredOf(s));
+  const A=rows.filter(r=>r.cond==='ilman'),B=rows.filter(r=>r.cond==='ai');
+  const head=`<div class="res-head"><div><h1>Tulokset</h1><p class="muted">Harjoituksia ei lasketa. Tulokset näkyvät vain sinulle.</p></div>
+    <div class="row"><label for="flt" class="label">Ryhmä</label><select id="flt" style="min-height:40px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)">${Object.entries(GROUPS).map(([k,v])=>`<option value="${k}" ${S.filter===k?'selected':''}>${v} (${k==='all'?S.runs.length:S.runs.filter(s=>groupOf(s)===k).length})</option>`).join('')}</select>
+    <button class="btn" data-act="csv" ${rows.length?'':'disabled'}>Vie CSV</button><button class="btn ghost" data-act="backup" ${S.runs.length?'':'disabled'}>Vie varmuuskopio</button></div></div>`;
+  if(!S.runs.length)return `<main class="wrap stack fade">${head}${importHtml()}<section class="panel pad"><div class="empty"><div><b>Ei vielä tuloksia.</b><br>Omat testisi tallentuvat tänne automaattisesti. Muiden testaajien tulokset tuodaan yllä olevalla lomakkeella.</div></div></section>${savingsHtml([],[])}</main>`;
+  const done=runs.filter(s=>s.status==='valmis').length;
+  const kpis=`<div class="cards">
+    <div class="panel kpi"><span class="label">Testaajia</span><div class="v num">${runs.length}</div><span class="note">${done} valmista</span></div>
+    <div class="panel kpi"><span class="label">Ratkaisuja</span><div class="v num">${rows.length}</div><span class="note">${A.length} ilman · ${B.length} tekoäly</span></div>
+    <div class="panel kpi"><span class="label">Kokonaisaika, mediaani</span><div class="v num">${fmtT(median(A.map(r=>r.tTot)))} → ${fmtT(median(B.map(r=>r.tTot)))}</div><span class="note">ilman → tekoäly</span></div>
+    <div class="panel kpi"><span class="label">Ylimääräinen kustannus, ka</span><div class="v num">${fmtE(mean(A.map(r=>r.excess)))} → ${fmtE(mean(B.map(r=>r.excess)))}</div><span class="note">ilman → tekoäly</span></div></div>`;
+  const list=`<section class="panel pad stack"><div><h2>Testaajat</h2><p class="note">Avaa testaajan omat tulokset tunnusta painamalla.</p></div><div class="tscroll"><table><thead><tr><th>Testaaja</th><th>Rooli</th><th class="num">Kokemus</th><th>Ryhmä</th><th>Versio</th><th>Aloitettu</th><th>Lähde</th><th>Tila</th><th></th></tr></thead><tbody>
+    ${[...runs].sort((x,y)=>y.startedAt-x.startedAt).map(s=>`<tr><td><button class="linkbtn" data-act="open" data-id="${esc(s.id)}">${esc(s.nick||'Nimetön')}</button></td><td>${esc(s.role)}</td><td class="num">${esc(s.exp)} v</td><td>${GROUPS[groupOf(s)]}</td><td class="mono">${esc(s.ver||'–')}</td><td class="mono">${fmtDate(s.startedAt)}</td><td>${s.src==='koodi'?'Tuotu':'Oma selain'}</td>
+    <td>${s.status==='valmis'?'<span class="st done">Valmis</span>':`<span class="st risk">Kesken ${(s.results||[]).filter(r=>!r.practice).length}/6</span>`}</td>
+    <td><button class="btn ${S.confirmDel===s.id?'danger':'ghost'} small" data-act="del" data-id="${esc(s.id)}">${S.confirmDel===s.id?'Vahvista poisto':'Poista'}</button></td></tr>`).join('')}</tbody></table></div></section>`;
+  const cmp=`<section class="panel pad stack"><h2>Ilman tekoälyä vs. tekoälyn kanssa</h2>${cmpTable(A,B)}<p class="note">Vihreä ero on tekoälyn eduksi ja punainen ilman tekoälyä tehdyn eduksi.</p></section>`;
+  const scRows=MEASURED.map(sid=>{const sc=SC[sid];const a=A.filter(r=>r.sid===sid),b=B.filter(r=>r.sid===sid);
+    const cell=x=>x.length?`<td class="num">${x.length}</td><td class="num">${fmtT(median(x.map(r=>r.tDec)))}</td><td class="num">${fmtT(median(x.map(r=>r.tTot)))}</td><td class="num">${fmtE(mean(x.map(r=>r.excess)))}</td>`:'<td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td>';
+    return `<tr><td>${esc(sc.title)}${sc.ai.flawed?' <span class="chip pilot">puutteellinen ehdotus</span>':''}${sc.dl?' <span class="chip">määräaika</span>':''}</td>${cell(a)}${cell(b)}</tr>`}).join('');
+  const scSec=`<section class="panel pad stack"><h2>Häiriöittäin</h2><div class="tscroll"><table class="cmp"><thead><tr><th rowspan="2">Häiriö</th><th colspan="4" class="grp">Ilman tekoälyä</th><th colspan="4" class="grp grp-ai">Tekoälyn kanssa</th></tr><tr><th class="num">n</th><th class="num">Päätös</th><th class="num">Yhteensä</th><th class="num">Ylim. €</th><th class="num">n</th><th class="num">Päätös</th><th class="num">Yhteensä</th><th class="num">Ylim. €</th></tr></thead><tbody>${scRows}</tbody></table></div><p class="note">Ajat ovat mediaaneja. Päätös = aika lopulliseen päätökseen, Yhteensä = päätös ja viestien lähetys.</p></section>`;
+  const fl=B.filter(r=>r.flawed);const dlA=A.filter(r=>r.sc.dl),dlB=B.filter(r=>r.sc.dl);
+  const aiSec=`<section class="panel pad stack"><h2>Tekoälyavustajan käyttö</h2><div class="tscroll"><table class="cmp"><tbody>
+    <tr><td>Avustajan suositus valittu</td><td class="num">${fmtP(pct(B.map(r=>r.accepted)))}</td></tr>
+    <tr><td>Viestiluonnoksista lähetetty muokkaamatta</td><td class="num">${fmtP(mean(B.map(r=>r.unedited)))}</td></tr>
+    <tr><td>Puutteellinen ehdotus (Väärä lastausjärjestys): ehdotus hyväksytty</td><td class="num">${fl.length?`${fl.filter(r=>r.accepted).length}/${fl.length}`:'–'}</td></tr>
+    <tr><td>Puutteellisen ehdotuksen kohdalla tietomalli avattu</td><td class="num">${fl.length?`${fl.filter(r=>r.model).length}/${fl.length}`:'–'}</td></tr>
+    <tr><td>Määräaika (katselmuspyyntö 13.50) ehditty: ilman / tekoäly</td><td class="num">${dlA.length?`${dlA.filter(r=>r.dlMet).length}/${dlA.length}`:'–'} / ${dlB.length?`${dlB.filter(r=>r.dlMet).length}/${dlB.length}`:'–'}</td></tr>
+  </tbody></table></div></section>`;
+  const sv=runs.map(s=>s.survey).filter(Boolean);
+  const svSec=`<section class="panel pad stack"><h2>Loppukysely (n=${sv.length})</h2><div class="cards">
+    ${[['use','Hyödyllisyys'],['trust','Luottamus'],['ease','Helppokäyttöisyys'],['real','Realistisuus']].map(([k,n])=>`<div class="panel kpi"><span class="label">${n}</span><div class="v num">${fmtN(mean(sv.map(x=>x[k])),1)}</div><span class="note">asteikko 1–5</span></div>`).join('')}</div>
+    ${runs.some(s=>s.survey&&s.survey.comment)?`<ul class="notes">${runs.filter(s=>s.survey&&s.survey.comment).map(s=>`<li><b>${esc(s.nick||s.role)}:</b> ${esc(s.survey.comment)}</li>`).join('')}</ul>`:''}</section>`;
+  return `<main class="wrap stack fade">${head}${csvBoxHtml()}${importHtml()}${kpis}${list}${cmp}${scSec}${aiSec}${svSec}${savingsHtml(A,B)}</main>`;
+}
+function vDetail(s){
+  const rows=measuredOf(s);const A=rows.filter(r=>r.cond==='ilman'),B=rows.filter(r=>r.cond==='ai');
+  const ql=q=>q===2?'<span class="st done">Paras</span>':q===1?'<span class="st risk">Hyväksyttävä</span>':'<span class="st late">Huono</span>';
+  const condC=c=>c==='ai'?'<span class="cond-ai">Tekoäly</span>':'Ilman';
+  const head=`<div class="res-head"><div class="stack" style="gap:8px"><div><button class="btn ghost small" data-act="back">← Kaikki tulokset</button></div>
+    <h1>${esc(s.nick||'Nimetön testaaja')}</h1>
+    <p class="muted">${esc(s.role)} · ${esc(s.exp)} v kokemusta · ${GROUPS[groupOf(s)]} · versio ${esc(s.ver||'–')} · ${fmtDate(s.startedAt)} · ${s.status==='valmis'?'Valmis':'Kesken'}</p></div>
+    <div class="row"><button class="btn" data-act="csv1" data-id="${esc(s.id)}" ${rows.length?'':'disabled'}>Vie testaajan CSV</button></div></div>`;
+  if(!rows.length)return `<main class="wrap stack fade">${head}${csvBoxHtml()}<section class="panel pad"><div class="empty"><div><b>Ei ratkaistuja häiriöitä.</b><br>Testaaja ei ehtinyt harjoitusten jälkeen ratkaista yhtään häiriötä.</div></div></section></main>`;
+  const tbl=`<section class="panel pad stack"><h2>Häiriöt ratkaisujärjestyksessä</h2><div class="tscroll"><table class="cmp">
+    <thead><tr><th>#</th><th>Häiriö</th><th>Tapa</th><th class="num">Päätös</th><th class="num">Tiedotus</th><th class="num">Yhteensä</th><th>Ratkaisu</th><th class="num">Tavoitettu</th><th class="num">Ylim. €</th><th class="num">Varmuus</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td class="mono">${r.n}</td><td>${esc(r.sc.title)}</td><td>${condC(r.cond)}</td><td class="num">${fmtT(r.tDec)}${r.changed?`<br><span class="note">1.: ${fmtT(r.tFirst)}</span>`:''}</td><td class="num">${fmtT(r.tInf)}</td><td class="num">${fmtT(r.tTot)}</td><td>${ql(r.q)}</td><td class="num">${r.reached}/${r.req}</td><td class="num">${fmtE(r.excess)}</td><td class="num">${r.conf??'–'}</td></tr>`).join('')}
+    </tbody></table></div></section>`;
+  const det=rows.map((r,i)=>{
+    const tabs=(r.tabs||[]).length?(r.tabs||[]).map(t=>`<span class="${t.t>r.tDec?'muted':''}">${esc(TABNAME[t.tab])}${t.via==='ai'?' (avustajasta)':''} <span class="mono">${fmtT(t.t)}</span></span>`).join(' → '):'Ei avattuja tietolähteitä';
+    const costRows=[...r.op.items.map(x=>[x.l,costOf([x])]),...r.missItems.map(x=>['Tiedotuspuute: '+x.l,costOf([x])]),...r.dlItems.map(x=>['Määräaika: '+x.l,costOf([x])])];
+    let aiRow='';
+    if(r.cond==='ai'){const recO=r.sc.opts.find(o=>o.id===r.sc.ai.rec);
+      aiRow=`<dt>Avustajan suositus</dt><dd>${r.accepted?'<span class="st done">Valittu</span>':'<span class="st risk">Ei valittu</span>'} ${esc(recO.t)}${r.flawed?' <span class="chip pilot">puutteellinen ehdotus</span>':''}</dd>
+        <dt>Viestiluonnokset</dt><dd>${r.unedited==null?'–':Math.round(r.unedited*100)+' % lähetetty muokkaamatta'}</dd>`}
+    return `<details class="sd"${i===0?' open':''}><summary>${r.n}. ${esc(r.sc.title)} · ${r.cond==='ai'?'tekoäly':'ilman'} · ${fmtT(r.tTot)} · ${fmtE(r.excess)}</summary>
+      <dl class="kv">
+        <dt>Ratkaisu</dt><dd>${ql(r.q)} ${esc(r.op.t)}<br><span class="note">${esc(r.op.c)}</span>${r.changed?`<br><span class="note">Muutti päätöstään tiedotusvaiheessa. Ensimmäinen valinta: ${esc((r.sc.opts.find(o=>o.id===r.firstChoice)||{}).t||'')}</span>`:''}</dd>
+        <dt>Ajat</dt><dd>${r.changed?`Ensimmäinen päätös ${fmtT(r.tFirst)} · `:''}Päätös ${fmtT(r.tDec)} · Viestit lähetetty ${fmtT(r.tTot)} häiriön avaamisesta</dd>
+        <dt>Kustannus</dt><dd>${costRows.length?costRows.map(c=>`${esc(c[0])}: ${fmtE(c[1])}`).join('<br>'):'Ei kustannuksia'}<br><span class="note">Paras mahdollinen ${fmtE(r.best)}, ylimääräinen ${fmtE(r.excess)}</span></dd>
+        <dt>Vastaanottajat</dt><dd>${(r.recip||[]).map(x=>esc(RNAME[x])).join(', ')||'–'}</dd>
+        <dt>Puuttui</dt><dd>${r.missing.length?r.missing.map(x=>`<span class="st late">${esc(RNAME[x])}</span>`).join(' '):'Kaikki tarvittavat tavoitettu'}</dd>
+        <dt>Turhat</dt><dd>${r.extraIds.length?r.extraIds.map(x=>esc(RNAME[x])).join(', '):'–'}</dd>
+        ${r.sc.dl?`<dt>Määräaika</dt><dd>${r.dlMet?'<span class="st done">Ehti</span>':'<span class="st late">Ei ehtinyt</span>'} ${esc(r.sc.dl.label)} klo ${fmtMin(r.sc.dl.at)}. Viesti lähti simulaatioajassa ${esc(simTime(r.sc,r.tSent))}.</dd>`:''}
+        <dt>Viestit</dt><dd>${Object.entries(msgsOf(r)).map(([k,v])=>`<div><b>${esc(RNAME[k]||k)}:</b> ${esc(v)}</div>`).join('')||'–'}</dd>
+        <dt>Avatut lähteet</dt><dd>${tabs}<br><span class="note">Harmaalla tiedotusvaiheessa avatut.</span></dd>
+        ${aiRow}
+      </dl></details>`}).join('');
+  const sv=s.survey;
+  const svSec=sv?`<section class="panel pad stack"><h2>Loppukysely</h2><dl class="kv">
+    <dt>Hyödyllisyys</dt><dd class="num">${sv.use??'–'} / 5</dd><dt>Luottamus</dt><dd class="num">${sv.trust??'–'} / 5</dd><dt>Helppokäyttöisyys</dt><dd class="num">${sv.ease??'–'} / 5</dd><dt>Realistisuus</dt><dd class="num">${sv.real??'–'} / 5</dd>
+    <dt>Kommentit</dt><dd>${esc(sv.comment||'–')}</dd></dl></section>`:'';
+  return `<main class="wrap stack fade">${head}${csvBoxHtml()}<section class="panel pad stack"><h2>Ilman tekoälyä vs. tekoälyn kanssa</h2>${cmpTable(A,B)}<p class="note">Yhden testaajan luvut perustuvat enintään kolmeen häiriöön kummallakin tavalla.</p></section>${tbl}<section class="panel pad stack"><h2>Häiriöiden tiedot</h2>${det}</section>${svSec}</main>`;
+}
+
+/* ---------- CSV ---------- */
+function buildCsv(id){
+  const n=x=>x==null||x===''?'':String(typeof x==='number'?Math.round(x*100)/100:x).replace('.',',');
+  const q=x=>`"${String(x??'').replace(/"/g,'""').replace(/\r?\n/g,' ')}"`;
+  const cols=['testaaja','rooli','kokemus_v','ryhma','versio','aloitettu','lahde','jarjestys','hairio','hairio_nimi','tyyppi','tapa','paatosaika_s','ensimmainen_paatos_s','tiedotusaika_s','kokonaisaika_s','valinta','ensimmainen_valinta','paatosta_muutettu','laatu_0_2','ratkaisun_kustannus','tiedotuspuute_kustannus','maaraaika_kustannus','kustannus_yht','paras_kustannus','ylimaarainen_kustannus','vaaditut','tavoitettu','kaikki_tavoitettu','puuttuvat','turhat','vastaanottajat','viestit','varmuus_1_5','lahteet_ennen_paatosta','avatut_lahteet','tietomalli_avattu','suunnitelmat_avattu','maaraaika_ehti','ai_suositus','ai_suositus_valittu','luonnoksista_muokkaamatta_osuus','ai_puutteellinen','kysely_hyodyllisyys','kysely_luottamus','kysely_helppous','kysely_realistisuus','kysely_kommentti'];
+  const runs=id?S.runs.filter(s=>s.id===id):filteredRuns();
+  const rows=runs.flatMap(s=>measuredOf(s).map(r=>{const sv=s.survey||{};
+    return [q(s.nick||'Nimetön'),q(s.role),n(+s.exp),GROUPS[groupOf(s)],s.ver||'',q(fmtDate(s.startedAt)),s.src==='koodi'?'tuotu':'selain',r.n,r.sid,q(r.sc.title),r.sc.type,r.cond,n(r.tDec/1000),n(r.tFirst/1000),n(r.tInf/1000),n(r.tTot/1000),r.choice,r.firstChoice||r.choice,r.changed?1:0,r.q,
+      n(r.base),n(r.miss),n(r.dlc),n(r.total),n(r.best),n(r.excess),r.req,r.reached,r.allReached?1:0,q(r.missing.map(x=>RNAME[x]).join(', ')),r.extra,q((r.recip||[]).map(x=>RNAME[x]).join(', ')),q(Object.entries(msgsOf(r)).map(([k,v])=>(RNAME[k]||k)+': '+v).join(' | ')),r.conf,
+      q(r.before.map(t=>TABNAME[t]).join(', ')),q((r.tabs||[]).map(t=>TABNAME[t.tab]+(t.via==='ai'?' (avustaja)':'')+' '+Math.round(t.t/1000)+'s').join(' > ')),r.model?1:0,r.docs?1:0,r.dlMet==null?'':(r.dlMet?1:0),
+      r.cond==='ai'?r.sc.ai.rec:'',r.accepted==null?'':(r.accepted?1:0),r.unedited==null?'':n(r.unedited),r.flawed?1:0,sv.use??'',sv.trust??'',sv.ease??'',sv.real??'',q(sv.comment||'')].join(';')}));
+  return [cols.join(';'),...rows].join('\r\n');
+}
+async function exportCsv(id){
+  const csv=buildCsv(id);const s=id&&S.runs.find(x=>x.id===id);
+  const fn='cn-simulaatio-'+(s?(String(s.nick||'testaaja').replace(/[^A-Za-z0-9_-]/g,'')||'testaaja'):'tulokset')+'.csv';
+  const st=await saveFile(fn,'\uFEFF'+csv,'text/csv;charset=utf-8');if(st==='saved'){toast('CSV-tiedosto tallennettu');return}if(st==='declined')return;
+  S.csv=csv;S.csvTitle='CSV-tiedoston sisältö';render();
+}
+
+/* ---------- renderöinti ---------- */
+function render(){
+  let main='';
+  if(S.screen==='welcome')main=vWelcome();
+  else if(S.screen==='aiintro')main=vAiIntro();
+  else if(S.screen==='ready')main=vReady();
+  else if(S.screen==='scenario')main=vScenario();
+  else if(S.screen==='survey')main=vSurvey();
+  else if(S.screen==='end')main=vEnd();
+  else if(S.screen==='results'){const ds=S.detail&&S.runs.find(x=>x.id===S.detail);if(S.detail&&!ds)S.detail=null;main=ds?vDetail(ds):vResults()}
+  else if(S.screen==='noaccess')main=`<main class="wrap center panel pad stack fade"><h1>Tulokset näkyvät vain testin järjestäjälle</h1><p>Voit tehdä testin aloitussivulta.</p><div><button class="btn" data-act="nav" data-s="welcome">Siirry testiin</button></div></main>`;
+  const foot=['welcome','end','results'].includes(S.screen)&&CONFIG.about?`<footer class="wrap foot">${esc(CONFIG.about)}</footer>`:'';
+  app.innerHTML=topbar()+main+foot+`<div id="toast" role="status" class="toast" hidden></div>`;
+  if(S.screen==='scenario'&&S.timer)tick();
+}
+function openTab(t,via){
+  const c=S.cur;c.tabs.push({tab:t,t:Math.round(now()-c.t0),step:c.step,via});c.tab=t;
+  document.getElementById('tabs').innerHTML=tabsHtml();document.getElementById('tabbody').innerHTML=tabBody(SC[c.sid],t);
+}
+function redrawDecide(){document.getElementById('decide').innerHTML=decideHtml();const ap=document.getElementById('aipanel');if(ap)ap.innerHTML=aiHtml()}
+function saveCfgSoon(){if(!(S.owner&&S.db))return;clearTimeout(S.cfgTimer);S.cfgTimer=setTimeout(()=>{S.db.doc('config/settings').set(JSON.parse(JSON.stringify(S.cfg))).catch(()=>{})},800)}
+
+/* ---------- tapahtumat ---------- */
+app.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='nav'){const s=b.dataset.s;S.detail=null;S.csv=null;S.confirmDel=null;S.importMsg=null;
+    S.screen=s;
+    if(s==='welcome'){S.sess=null;S.resume=readResume()}render();window.scrollTo(0,0);return}
+  if(a==='start'){start();return}
+  if(a==='resume'){resume();return}
+  if(a==='discard'){lsDel(LS_CUR);S.resume=null;render();return}
+  if(a==='next'){advance();return}
+  if(a==='tab'){openTab(b.dataset.t,'tab');return}
+  if(a==='src'){openTab(b.dataset.t,'ai');return}
+  if(a==='decide'){const c=S.cur;if(!c.choice)return;c.tDec=now()-c.t0;c.step=2;
+    if(c.firstChoice==null){c.firstChoice=c.choice;c.tFirst=c.tDec}
+    if(c.cond==='ai'&&c.draftFor!==c.choice){const op=SC[c.sid].opts.find(o=>o.id===c.choice);c.recip=[...op.to];c.msgs={...(op.m||{})};c.drafted=true;c.draftFor=c.choice}
+    redrawDecide();return}
+  if(a==='backdec'){const c=S.cur;document.querySelectorAll('#msgarea textarea[data-r]').forEach(t=>{c.msgs[t.dataset.r]=t.value});c.step=1;c.revisions++;redrawDecide();return}
+  if(a==='send'){const c=S.cur;const err=document.getElementById('send-err');
+    document.querySelectorAll('#msgarea textarea[data-r]').forEach(t=>{c.msgs[t.dataset.r]=t.value});
+    if(!c.recip.length){err.textContent='Valitse vähintään yksi vastaanottaja.';err.hidden=false;return}
+    const empty=c.recip.filter(k=>(c.msgs[k]||'').trim().length<3);
+    if(empty.length){err.textContent='Kirjoita viesti: '+empty.map(k=>RNAME[k]).join(', ')+'.';err.hidden=false;return}
+    c.tInf=now()-c.t0-c.tDec;c.step=3;redrawDecide();return}
+  if(a==='conf'){S.cur.conf=+b.dataset.v;redrawDecide();return}
+  if(a==='finish'){if(S.cur.conf)finishScenario();return}
+  if(a==='sv'){S.sess.survey={...(S.sess.survey||{}),[b.dataset.k]:+b.dataset.v};b.parentElement.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));return}
+  if(a==='survey-done'){const sv=S.sess.survey||{};const err=document.getElementById('sv-err');
+    if(!sv.use||!sv.trust||!sv.ease||!sv.real){err.textContent='Vastaa neljään asteikkokysymykseen.';err.hidden=false;return}
+    persist();advance();return}
+  if(a==='copycode'){const ta=document.getElementById('codebox');try{await navigator.clipboard.writeText(S.code);toast('Tulokset kopioitu. Liitä ne sähköpostiin.')}catch(_){ta.focus();ta.select();toast('Teksti valittu. Kopioi se Ctrl+C:llä tai Cmd+C:llä.')}return}
+  if(a==='savecode'){const st=await saveFile('cn-simulaatio-tulokset'+(S.sess.nick?'-'+S.sess.nick.replace(/[^A-Za-z0-9_-]/g,''):'')+'.txt',S.code);if(st==='saved')toast('Tiedosto tallennettu. Liitä se sähköpostiin.');else if(st==='fail')toast('Tallennus ei onnistunut. Kopioi tulokset tekstinä.');return}
+  if(a==='import'){const txt=document.getElementById('imp-text').value;if(!txt.trim()){S.importMsg={err:true,text:'Liitä ensin sähköpostin teksti.'};render();return}
+    const r=await importText(txt);S.importMsg=importReport(r);render();return}
+  if(a==='open'){S.detail=b.dataset.id;S.csv=null;S.confirmDel=null;render();window.scrollTo(0,0);return}
+  if(a==='back'){S.detail=null;S.csv=null;render();window.scrollTo(0,0);return}
+  if(a==='csv'){exportCsv();return}
+  if(a==='backup'){const codes=[];for(const s of S.runs){try{codes.push(await encodeRun(s))}catch(_){}}
+    const txt='Construction Navigator Simulator – varmuuskopio '+new Date().toLocaleString('fi-FI')+'\nTestaajia: '+codes.length+'\nPalauta tuomalla tämä tiedosto Tuo tulokset -kohdassa.\n\n'+codes.join('\n\n')+'\n';
+    const st=await saveFile('cn-simulaatio-varmuuskopio-'+new Date().toISOString().slice(0,10)+'.txt',txt);
+    if(st==='saved'){toast('Varmuuskopio tallennettu');return}if(st==='declined')return;S.csv=txt;S.csvTitle='Varmuuskopio';render();return}
+  if(a==='csv1'){exportCsv(b.dataset.id);return}
+  if(a==='closecsv'){S.csv=null;render();return}
+  if(a==='copycsv'){const ta=document.getElementById('csvbox');try{await navigator.clipboard.writeText(S.csv);toast('Kopioitu')}catch(_){ta.focus();ta.select();toast('Teksti valittu, kopioi Ctrl+C')}return}
+  if(a==='del'){const id=b.dataset.id;if(S.confirmDel!==id){S.confirmDel=id;render();return}
+    S.confirmDel=null;
+    if(S.owner&&S.db){try{await S.db.doc('runs3/'+id).delete();toast('Testaaja poistettu')}catch(err){toast('Poisto epäonnistui.')}}
+    else{delLocalRun(id);S.runs=localRuns();render();toast('Testaaja poistettu')}
+    return}
+});
+function importReport(r){
+  if(!r.found)return {err:true,text:r.old?'Tulokset ovat simulaattorin aiemmasta versiosta, eikä niitä voi verrata nykyisiin häiriöihin.':'Tekstistä ei löytynyt tuloskoodeja. Tarkista, että liitit koko viestin.'};
+  const parts=[];if(r.ok)parts.push(`Tuotiin ${r.ok} ${r.ok===1?'testaaja':'testaajaa'}${r.names.length?' ('+r.names.join(', ')+')':''}.`);
+  if(r.dup)parts.push(`${r.dup} oli jo tuotu.`);if(r.bad)parts.push(`${r.bad} koodia ei voitu lukea; pyydä testaajaa lähettämään tulokset uudelleen.`);
+  return {err:!r.ok&&!r.dup,text:parts.join(' ')};
+}
+app.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.name==='opt'&&S.cur){S.cur.choice=t.value;const btn=document.querySelector('[data-act="decide"]');if(btn)btn.disabled=false;return}
+  if(t.name==='rcp'&&S.cur){const c=S.cur;document.querySelectorAll('#msgarea textarea[data-r]').forEach(x=>{c.msgs[x.dataset.r]=x.value});
+    if(t.checked){if(!c.recip.includes(t.value))c.recip.push(t.value)}else c.recip=c.recip.filter(x=>x!==t.value);
+    document.getElementById('msgarea').innerHTML=msgAreaHtml();const er=document.getElementById('send-err');if(er)er.hidden=true;
+    if(t.checked){const ta=document.getElementById('m-'+t.value);if(ta&&!ta.value)ta.focus()}return}
+  if(t.id==='flt'){S.filter=t.value;render();return}
+  if(t.id==='imp-file'&&t.files&&t.files.length){let txt='';for(const f of t.files){try{txt+='\n'+await f.text()}catch(_){}}
+    const r=await importText(txt);S.importMsg=importReport(r);render();return}
+  if(t.dataset.f){S.form[t.dataset.f]=t.value;return}
+  if(t.dataset.cfg){const [g,k]=t.dataset.cfg.split('.');const v=parseFloat(String(t.value).replace(',','.'));if(!isNaN(v)&&v>=0){S.cfg[g][k]=v;saveCfgSoon();const y=window.scrollY;render();window.scrollTo(0,y)}return}
+});
+app.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.r&&S.cur){S.cur.msgs[t.dataset.r]=t.value;return}
+  if(t.dataset.sv&&S.sess){S.sess.survey={...(S.sess.survey||{}),[t.dataset.sv]:t.value};return}
+  if(t.dataset.f){S.form[t.dataset.f]=t.value}
+});
+
+/* ---------- käynnistys ---------- */
+function readResume(){const r=lsGet(LS_CUR,null);return r&&r.sess&&r.sess.v===3&&r.sess.status==='kesken'&&Array.isArray(r.sess.order)?r:null}
+function readHash(){try{const t=location.hash.replace('#','').toLowerCase().split('-');return {results:t.includes('tulokset'),ver:t.includes('a')?'A':t.includes('b')?'B':null}}catch(e){return {}}}
+{const h=readHash();if(h.ver)S.forceVer=h.ver;if(h.results){S.wantResults=true;S.screen='results'}}
+window.addEventListener('hashchange',()=>{const h=readHash();if(h.ver)S.forceVer=h.ver;
+  if(h.results&&!['scenario','aiintro','ready','survey'].includes(S.screen)){S.screen='results';S.detail=null;render()}});
+S.resume=readResume();S.runs=localRuns();
+render();
+(async()=>{
+  const use=n=>window.claude&&window.claude.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
+  const [db,user]=await Promise.all([use('db'),use('user')]);
+  let owner=false;try{owner=user?!!(await user.isOwner()):false}catch(e){owner=false}
+  S.db=db;S.owner=!!(owner&&db);
+  if(S.owner){
+    try{const d=await db.doc('config/settings').get();if(d.exists){const v=d.data();S.cfg={rates:{...DEFAULT_RATES,...(v.rates||{})},calc:{...S.cfg.calc,...(v.calc||{})}}}}catch(e){}
+    try{db.collection('runs3').onSnapshot(snap=>{S.runs=snap.docs.map(d=>d.data());if(['welcome','results','end'].includes(S.screen)){const y=window.scrollY;render();window.scrollTo(0,y)}},()=>{})}catch(e){}
+    if(S.sess)persist();
+  }
+  if(S.wantResults&&['welcome'].includes(S.screen))S.screen='results';
+  if(['welcome','results','noaccess','end'].includes(S.screen))render();
+  S.dl=await use('downloads');
+  if(S.screen==='end')render();
+})();
+
+</script>
+</body>
+</html>
