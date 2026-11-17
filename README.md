@@ -58,7 +58,7 @@ Linkkien lisäosat:
 
 Testi kestää noin 25–30 minuuttia. Sen voi keskeyttää ja jatkaa myöhemmin samalla selaimella.
 
-1. **Aloitus:** lyhyt ohje, testaajan nimi, rooli ja työkokemus. Nimen avulla järjestäjä tunnistaa tulokset ja voi karsia asiattomat vastaukset.
+1. **Aloitus:** lyhyt ohje, rooli, työkokemus ja vapaaehtoinen nimimerkki. Testaajan tunnistaa tulokset lähettäneestä sähköpostiosoitteesta.
 2. **Harjoitus 1** ilman tekoälyä ja **harjoitus 2** tekoälyavustajan kanssa. Harjoituksia ei lasketa tuloksiin.
 3. **Kuusi mitattavaa häiriötä.** Häiriöt ja niiden vaihtoehdot ovat kaikilla testaajilla samassa järjestyksessä. Tekoäly on käytössä kolmessa häiriössä. Versioita on kaksi (A ja B), ja ne ovat toistensa peilikuvat: häiriö, joka ratkaistaan versiossa A tekoälyn kanssa, ratkaistaan versiossa B ilman. Simulaattori arpoo version, tai sen voi määrätä linkillä. Jokaisen häiriön yläreunassa näkyy, onko avustaja käytössä.
 4. **Loppukysely:** avustajan hyödyllisyys, luottamus, helppokäyttöisyys ja tilanteiden realistisuus asteikolla 1–5 sekä vapaa kommentti.
@@ -181,4 +181,4 @@ Säästölaskelma kertoo ylimääräisen kustannuksen ja ajan erotuksen ilman te
 - **Pieni otos.** Muutaman testaajan tulokset ovat suuntaa antavia, eivät tilastollisesti merkitseviä.
 - **Tulokset selaimen muistissa.** Tulosnäkymään tuodut tulokset ovat sen selaimen muistissa, jossa ne tuodaan. Google-lomakkeen vastaustaulukko toimii pysyvänä tallenteena, muuten ota varmuuskopio.
 - **Versiot.** Jos häiriöitä tai vaihtoehtoja muutetaan, aiemmin kerätyt tulokset eivät ole enää vertailukelpoisia.
-- **Tietosuoja.** Testi kysyy testaajan nimen. Tulokset ja testaajan kirjoittamat viestit kannattaa käsitellä luottamuksellisina, eikä nimiä julkaista raportissa.
+- **Tietosuoja.** Testi ei kysy nimeä. Nimimerkki on vapaaehtoinen. Tulostekstissä on testaajan kirjoittamat viestit, joten niitä kannattaa käsitellä luottamuksellisina.

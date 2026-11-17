@@ -602,7 +602,7 @@ function tick(){const c=S.cur;if(!c)return;const el=document.getElementById('sim
 function advance(){S.pos++;saveCurrent();go()}
 function start(){
   const err=document.getElementById('f-err');
-  if(S.form.nick.trim().length<2||!S.form.role||S.form.exp===''){err.textContent='Kirjoita nimesi, valitse rooli ja kirjoita työkokemus vuosina.';err.hidden=false;return}
+  if(!S.form.role||S.form.exp===''){err.textContent='Valitse rooli ja kirjoita työkokemus vuosina.';err.hidden=false;return}
   S.sess=newSession();S.seq=buildSeq(S.sess);S.pos=0;S.code=null;S.saved=null;persist();go();
 }
 function resume(){const r=S.resume;S.sess=r.sess;S.seq=buildSeq(r.sess);S.pos=r.pos;S.resume=null;S.code=null;S.saved=null;go()}
@@ -706,7 +706,7 @@ function vWelcome(){
       <li><b>Kesto noin 25–30 minuuttia.</b> Voit keskeyttää ja jatkaa myöhemmin samalla selaimella.</li>
       <li>Ensin kaksi harjoitusta, sitten kuusi häiriötä ja lyhyt loppukysely.</li>
       <li>Jokaisessa häiriössä päätät ensin, mitä tehdään, ja sitten kirjoitat lyhyen viestin jokaiselle, jota päätös koskee.</li>
-      <li>Nimesi näkyy vain testin järjestäjille, eikä sitä julkaista. Simulaattori mittaa ajan automaattisesti.</li>
+      <li>Vastaukset käsitellään nimettöminä. Simulaattori mittaa ajan automaattisesti.</li>
     </ul>
   </section>
   ${r?`<section class="panel pad stack resume"><h2>Jatka keskeneräistä testiä</h2><p>Olet ratkaissut ${done}/6 häiriötä. Voit jatkaa siitä, mihin jäit.</p>
@@ -714,9 +714,9 @@ function vWelcome(){
   <section class="panel pad stack">
     <h2>Taustatiedot</h2>
     <div class="formgrid">
-      <div class="field full"><label for="f-nick">Nimi</label><input id="f-nick" data-f="nick" maxlength="60" autocomplete="name" placeholder="Etu- ja sukunimi" value="${esc(f.nick)}"></div>
       <div class="field full"><label for="f-role">Roolisi</label><select id="f-role" data-f="role"><option value="">Valitse rooli</option>${ROLES.map(x=>`<option ${f.role===x?'selected':''}>${x}</option>`).join('')}</select></div>
       <div class="field"><label for="f-exp">Työkokemus rakennusalalta (vuotta)</label><input id="f-exp" data-f="exp" type="number" min="0" max="60" inputmode="numeric" value="${esc(f.exp)}"></div>
+      <div class="field"><label for="f-nick">Nimimerkki <span class="muted">(vapaaehtoinen)</span></label><input id="f-nick" data-f="nick" maxlength="40" autocomplete="off" value="${esc(f.nick)}"></div>
     </div>
     <p class="err" id="f-err" hidden></p>
     <div><button class="btn" data-act="start">Aloita</button></div>
@@ -851,8 +851,8 @@ function vEnd(){
     <p>Tulokset ovat vielä vain tällä selaimella. Lähetä ne meille näin:</p>
     <ol class="welcome-list"><li>Paina <b>Kopioi tulokset</b>.</li><li>Liitä teksti sähköpostiin ja lähetä se ${to}.</li></ol>
     ${S.code?`<textarea class="codebox" id="codebox" readonly>${esc(S.code)}</textarea>
-    <div class="row"><button class="btn" data-act="copycode">Kopioi tulokset</button>${CONFIG.contactEmail&&!IN_CLAUDE()?`<a class="btn ghost" href="mailto:${encodeURIComponent(CONFIG.contactEmail)}?subject=${encodeURIComponent('Simulaatiotestin tulokset – '+(S.sess.nick||''))}&body=${encodeURIComponent((S.code||'').length<1800?S.code:'Liitä tulokset tähän.')}">Avaa sähköposti</a>`:''}${canSaveFile()?'<button class="btn ghost" data-act="savecode">Tallenna tiedostona</button>':''}</div>
-    <p class="note">Tekstissä ovat nimesi, vastauksesi, ajat ja kirjoittamasi viestit.</p>`:`<p class="note">Muodostetaan tuloksia…</p>`}</section>`;
+    <div class="row"><button class="btn" data-act="copycode">Kopioi tulokset</button>${CONFIG.contactEmail&&!IN_CLAUDE()?`<a class="btn ghost" href="mailto:${encodeURIComponent(CONFIG.contactEmail)}?subject=${encodeURIComponent('Simulaatiotestin tulokset'+(S.sess.nick?' – '+S.sess.nick:''))}&body=${encodeURIComponent((S.code||'').length<1800?S.code:'Liitä tulokset tähän.')}">Avaa sähköposti</a>`:''}${canSaveFile()?'<button class="btn ghost" data-act="savecode">Tallenna tiedostona</button>':''}</div>
+    <p class="note">Tekstissä ovat vastauksesi, ajat ja kirjoittamasi viestit. Siinä ei ole nimeäsi, ellet kirjoittanut nimimerkkiä.</p>`:`<p class="note">Muodostetaan tuloksia…</p>`}</section>`;
   const list=rows.map(r=>`<tr><td class="mono">${r.n}</td><td>${esc(r.sc.title)}</td><td>${r.cond==='ai'?'<span class="cond-ai">Tekoäly</span>':'Ilman'}</td><td class="num">${fmtT(r.tDec)}</td><td class="num">${fmtT(r.tTot)}</td><td>${ql(r.q)}</td><td class="num">${r.reached}/${r.req}</td><td class="num">${fmtE(round50(r.excess))}</td></tr>`).join('');
   const best=rows.map(r=>{const b=r.sc.opts.find(o=>o.q===2);return `<li><b>${esc(r.sc.title)}:</b> ${esc(b.t)}</li>`}).join('');
   return `<main class="wrap center stack fade">
